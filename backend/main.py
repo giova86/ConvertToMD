@@ -6,6 +6,8 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from converters import docx_to_markdown, xlsx_to_markdown, convert_to_pdf_bytes
+
 app = FastAPI(title="pdf2mrk API")
 
 app.add_middleware(
@@ -59,6 +61,34 @@ async def upload_pdf(file: UploadFile = File(...)):
 
     doc.close()
     return {"page_count": len(pages), "pages": pages, "filename": file.filename}
+
+
+SUPPORTED_DIRECT = {".docx", ".xlsx", ".xls"}
+SUPPORTED_OCR = {".docx", ".doc", ".xlsx", ".xls"}
+
+
+@app.post("/api/convert-direct")
+async def convert_direct(file: UploadFile = File(...)):
+    name = file.filename.lower()
+    ext = "." + name.rsplit(".", 1)[-1] if "." in name else ""
+
+    if ext not in SUPPORTED_DIRECT:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Direct extraction only supports .docx, .xlsx, .xls — got {ext}",
+        )
+
+    content = await file.read()
+
+    try:
+        if ext == ".docx":
+            markdown, info = docx_to_markdown(content)
+        else:
+            markdown, info = xlsx_to_markdown(content)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Conversion failed: {e}")
+
+    return {"filename": file.filename, "markdown": markdown, "info": info}
 
 
 @app.post("/api/ocr-page", response_model=OcrPageResponse)

@@ -41,3 +41,22 @@ def test_health():
     r = client.get("/api/health")
     assert r.status_code == 200
     assert r.json() == {"status": "ok"}
+
+
+def test_convert_direct_docx():
+    docx_bytes = make_docx_bytes()
+    r = client.post(
+        "/api/convert-direct",
+        files={"file": ("document.docx", docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert "markdown" in data
+    assert "info" in data
+    assert data["filename"] == "document.docx"
+    assert "# Test Title" in data["markdown"]
+    assert "Hello world paragraph" in data["markdown"]
+    assert "Col A" in data["markdown"]
+    assert data["info"]["type"] == "word"
+    assert data["info"]["headings"] >= 1
+    assert data["info"]["tables"] >= 1
