@@ -1,13 +1,17 @@
 import io
+import shutil
+
 import pytest
+from docx import Document
 from fastapi.testclient import TestClient
+import openpyxl
+
 from main import app
 
 client = TestClient(app)
 
 
 def make_docx_bytes() -> bytes:
-    from docx import Document
     doc = Document()
     doc.add_heading("Test Title", level=1)
     doc.add_paragraph("Hello world paragraph.")
@@ -22,7 +26,6 @@ def make_docx_bytes() -> bytes:
 
 
 def make_xlsx_bytes() -> bytes:
-    import openpyxl
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Sales"
