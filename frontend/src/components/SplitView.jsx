@@ -45,7 +45,7 @@ export default function SplitView({
             className={[
               'text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap',
               allDone
-                ? 'bg-green-100 text-green-700'
+                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                 : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400',
             ].join(' ')}
           >
@@ -160,11 +160,11 @@ export default function SplitView({
                   'w-6 h-6 rounded-md text-xs font-medium transition-all flex-shrink-0',
                   i === currentPage ? 'ring-2 ring-blue-400 ring-offset-1' : '',
                   s === 'done'
-                    ? 'bg-green-100 text-green-700'
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                     : s === 'loading'
-                      ? 'bg-blue-100 text-blue-500 animate-pulse'
+                      ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400 animate-pulse'
                       : s === 'error'
-                        ? 'bg-red-100 text-red-500'
+                        ? 'bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400'
                         : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600',
                 ].join(' ')}
               >
