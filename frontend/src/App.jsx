@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
-import { FileUp } from 'lucide-react'
+import { FileUp, Moon, Sun } from 'lucide-react'
+import { useTheme } from './ThemeContext'
 import UploadZone from './components/UploadZone'
 import SplitView from './components/SplitView'
 import DirectView from './components/DirectView'
@@ -225,6 +226,8 @@ export default function App() {
 }
 
 function Header({ onNew }) {
+  const { isDark, toggleTheme } = useTheme()
+
   return (
     <header className="bg-slate-900 text-white px-6 py-3 flex items-center justify-between flex-shrink-0 shadow-lg">
       <div className="flex items-center gap-3">
@@ -235,15 +238,29 @@ function Header({ onNew }) {
         <span className="text-slate-500 text-sm hidden sm:inline">Docs → Markdown</span>
       </div>
 
-      {onNew && (
+      <div className="flex items-center gap-2">
         <button
-          onClick={onNew}
-          className="flex items-center gap-2 text-sm bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg transition-colors"
+          onClick={toggleTheme}
+          className="p-2 rounded-lg hover:bg-slate-700 transition-colors"
+          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
         >
-          <FileUp className="w-4 h-4" />
-          New document
+          {isDark ? (
+            <Sun className="w-4 h-4 text-slate-300" />
+          ) : (
+            <Moon className="w-4 h-4 text-slate-400" />
+          )}
         </button>
-      )}
+
+        {onNew && (
+          <button
+            onClick={onNew}
+            className="flex items-center gap-2 text-sm bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <FileUp className="w-4 h-4" />
+            New document
+          </button>
+        )}
+      </div>
     </header>
   )
 }
