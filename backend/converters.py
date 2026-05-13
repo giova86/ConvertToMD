@@ -1,5 +1,7 @@
 import io
 
+import openpyxl
+
 
 def _runs_to_md(runs) -> str:
     md = ""
@@ -81,7 +83,35 @@ def docx_to_markdown(content: bytes) -> tuple[str, dict]:
 
 
 def xlsx_to_markdown(content: bytes) -> tuple[str, dict]:
-    raise NotImplementedError("Excel extraction not yet implemented")
+    wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+    parts = []
+    info = {"type": "excel", "sheets": []}
+
+    for sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+        rows = list(ws.iter_rows(values_only=True))
+        non_empty = [r for r in rows if any(c is not None for c in r)]
+
+        sheet_info = {
+            "name": sheet_name,
+            "rows": len(non_empty),
+            "cols": len(non_empty[0]) if non_empty else 0,
+        }
+        info["sheets"].append(sheet_info)
+
+        if not non_empty:
+            continue
+
+        parts.append(f"## Sheet: {sheet_name}")
+
+        header = non_empty[0]
+        parts.append("| " + " | ".join(str(c) if c is not None else "" for c in header) + " |")
+        parts.append("| " + " | ".join("---" for _ in header) + " |")
+
+        for row in non_empty[1:]:
+            parts.append("| " + " | ".join(str(c) if c is not None else "" for c in row) + " |")
+
+    return "\n\n".join(parts), info
 
 
 def convert_to_pdf_bytes(content: bytes, filename: str) -> bytes:

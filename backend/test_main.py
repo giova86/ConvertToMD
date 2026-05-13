@@ -60,3 +60,21 @@ def test_convert_direct_docx():
     assert data["info"]["type"] == "word"
     assert data["info"]["headings"] >= 1
     assert data["info"]["tables"] >= 1
+
+
+def test_convert_direct_xlsx():
+    xlsx_bytes = make_xlsx_bytes()
+    r = client.post(
+        "/api/convert-direct",
+        files={"file": ("data.xlsx", xlsx_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["filename"] == "data.xlsx"
+    assert "## Sheet: Sales" in data["markdown"]
+    assert "Name" in data["markdown"]
+    assert "Alice" in data["markdown"]
+    assert data["info"]["type"] == "excel"
+    assert len(data["info"]["sheets"]) == 1
+    assert data["info"]["sheets"][0]["name"] == "Sales"
+    assert data["info"]["sheets"][0]["rows"] == 3
