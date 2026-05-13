@@ -198,7 +198,7 @@ export default function App() {
             mode={conversionMode}
             onModeChange={setConversionMode}
             onStart={handleStartConversion}
-            isLoading={false}
+            isLoading={appState === 'uploading'}
             error={uploadError}
           />
         </main>

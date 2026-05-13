@@ -1,7 +1,5 @@
 import io
 
-import openpyxl
-
 
 def _runs_to_md(runs) -> str:
     md = ""
@@ -83,6 +81,8 @@ def docx_to_markdown(content: bytes) -> tuple[str, dict]:
 
 
 def xlsx_to_markdown(content: bytes) -> tuple[str, dict]:
+    import openpyxl
+
     wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
     parts = []
     info = {"type": "excel", "sheets": []}

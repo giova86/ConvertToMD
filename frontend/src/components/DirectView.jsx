@@ -15,7 +15,7 @@ export default function DirectView({ directResult, onDownload }) {
           <span className="font-medium text-slate-700 dark:text-slate-200 text-sm truncate max-w-xs">
             {directResult.filename}
           </span>
-          <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700 whitespace-nowrap">
+          <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 whitespace-nowrap">
             Direct extraction
           </span>
         </div>

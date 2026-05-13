@@ -48,19 +48,21 @@ async def upload_pdf(file: UploadFile = File(...)):
     pages = []
     mat = fitz.Matrix(RENDER_DPI / 72, RENDER_DPI / 72)
 
-    for page_num in range(len(doc)):
-        page = doc[page_num]
-        pix = page.get_pixmap(matrix=mat)
-        img_bytes = pix.tobytes("jpeg", jpg_quality=90)
-        img_b64 = base64.b64encode(img_bytes).decode("utf-8")
-        pages.append({
-            "page_number": page_num + 1,
-            "image_base64": img_b64,
-            "width": pix.width,
-            "height": pix.height,
-        })
+    try:
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            pix = page.get_pixmap(matrix=mat)
+            img_bytes = pix.tobytes("jpeg", jpg_quality=90)
+            img_b64 = base64.b64encode(img_bytes).decode("utf-8")
+            pages.append({
+                "page_number": page_num + 1,
+                "image_base64": img_b64,
+                "width": pix.width,
+                "height": pix.height,
+            })
+    finally:
+        doc.close()
 
-    doc.close()
     return {"page_count": len(pages), "pages": pages, "filename": file.filename}
 
 
@@ -126,19 +128,21 @@ async def convert_to_pdf(file: UploadFile = File(...)):
     pages = []
     mat = fitz.Matrix(RENDER_DPI / 72, RENDER_DPI / 72)
 
-    for page_num in range(len(doc)):
-        page = doc[page_num]
-        pix = page.get_pixmap(matrix=mat)
-        img_bytes = pix.tobytes("jpeg", jpg_quality=90)
-        img_b64 = base64.b64encode(img_bytes).decode("utf-8")
-        pages.append({
-            "page_number": page_num + 1,
-            "image_base64": img_b64,
-            "width": pix.width,
-            "height": pix.height,
-        })
+    try:
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            pix = page.get_pixmap(matrix=mat)
+            img_bytes = pix.tobytes("jpeg", jpg_quality=90)
+            img_b64 = base64.b64encode(img_bytes).decode("utf-8")
+            pages.append({
+                "page_number": page_num + 1,
+                "image_base64": img_b64,
+                "width": pix.width,
+                "height": pix.height,
+            })
+    finally:
+        doc.close()
 
-    doc.close()
     return {"page_count": len(pages), "pages": pages, "filename": file.filename}
 
 
