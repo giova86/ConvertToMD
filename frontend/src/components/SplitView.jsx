@@ -22,7 +22,7 @@ export default function SplitView({
   onDownloadAll,
   isOcrAllRunning,
 }) {
-  const [markdownView, setMarkdownView] = useState('rendered') // rendered | raw
+  const [markdownView, setMarkdownView] = useState('rendered')
 
   const page = pdfDoc.pages[currentPage]
   const pageNum = page.page_number
@@ -35,11 +35,10 @@ export default function SplitView({
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* ── Toolbar ── */}
-      <div className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center gap-3 flex-shrink-0 flex-wrap">
-        {/* Filename + progress */}
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-2.5 flex items-center gap-3 flex-shrink-0 flex-wrap">
         <div className="flex items-center gap-2 mr-auto min-w-0">
           <span className="text-base">📄</span>
-          <span className="font-medium text-slate-700 text-sm truncate max-w-xs">
+          <span className="font-medium text-slate-700 dark:text-slate-200 text-sm truncate max-w-xs">
             {pdfDoc.filename}
           </span>
           <span
@@ -47,37 +46,35 @@ export default function SplitView({
               'text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap',
               allDone
                 ? 'bg-green-100 text-green-700'
-                : 'bg-slate-100 text-slate-500',
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400',
             ].join(' ')}
           >
             {doneCount}/{totalPages} OCR'd
           </span>
         </div>
 
-        {/* Page navigation */}
         <div className="flex items-center gap-1">
           <button
             onClick={() => onPageChange(Math.max(0, currentPage - 1))}
             disabled={currentPage === 0}
-            className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
             title="Previous page"
           >
-            <ChevronLeft className="w-4 h-4 text-slate-600" />
+            <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-300" />
           </button>
-          <span className="text-sm font-medium text-slate-700 px-2 tabular-nums">
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200 px-2 tabular-nums">
             {pageNum} / {totalPages}
           </span>
           <button
             onClick={() => onPageChange(Math.min(totalPages - 1, currentPage + 1))}
             disabled={currentPage === totalPages - 1}
-            className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
             title="Next page"
           >
-            <ChevronRight className="w-4 h-4 text-slate-600" />
+            <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />
           </button>
         </div>
 
-        {/* OCR controls */}
         <div className="flex items-center gap-2">
           <button
             onClick={() => onOcrPage(currentPage)}
@@ -103,8 +100,8 @@ export default function SplitView({
             className={[
               'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all',
               isOcrAllRunning || allDone
-                ? 'border-slate-200 text-slate-400 cursor-not-allowed bg-slate-50'
-                : 'border-slate-300 hover:bg-slate-50 text-slate-700',
+                ? 'border-slate-200 dark:border-slate-600 text-slate-400 cursor-not-allowed bg-slate-50 dark:bg-slate-700'
+                : 'border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200',
             ].join(' ')}
           >
             {isOcrAllRunning ? (
@@ -118,7 +115,7 @@ export default function SplitView({
           {doneCount > 0 && (
             <button
               onClick={onDownloadAll}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-300 hover:bg-slate-50 text-slate-700 transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all"
               title="Download all OCR results as a single Markdown file"
             >
               <Download className="w-3.5 h-3.5" />
@@ -127,8 +124,7 @@ export default function SplitView({
           )}
         </div>
 
-        {/* Rendered / Raw toggle */}
-        <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
+        <div className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-lg p-0.5">
           {[
             { key: 'rendered', icon: Eye, label: 'Preview' },
             { key: 'raw', icon: Code2, label: 'Raw' },
@@ -139,8 +135,8 @@ export default function SplitView({
               className={[
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all',
                 markdownView === key
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700',
+                  ? 'bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200',
               ].join(' ')}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -152,7 +148,7 @@ export default function SplitView({
 
       {/* ── Page status strip ── */}
       {totalPages > 1 && (
-        <div className="bg-white border-b border-slate-100 px-4 py-1.5 flex items-center gap-1 overflow-x-auto flex-shrink-0">
+        <div className="bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 px-4 py-1.5 flex items-center gap-1 overflow-x-auto flex-shrink-0">
           {pdfDoc.pages.map((p, i) => {
             const s = ocrStatus[p.page_number] || 'idle'
             return (
@@ -162,16 +158,14 @@ export default function SplitView({
                 title={`Page ${p.page_number}`}
                 className={[
                   'w-6 h-6 rounded-md text-xs font-medium transition-all flex-shrink-0',
-                  i === currentPage
-                    ? 'ring-2 ring-blue-400 ring-offset-1'
-                    : '',
+                  i === currentPage ? 'ring-2 ring-blue-400 ring-offset-1' : '',
                   s === 'done'
                     ? 'bg-green-100 text-green-700'
                     : s === 'loading'
                       ? 'bg-blue-100 text-blue-500 animate-pulse'
                       : s === 'error'
                         ? 'bg-red-100 text-red-500'
-                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200',
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600',
                 ].join(' ')}
               >
                 {p.page_number}
@@ -183,10 +177,12 @@ export default function SplitView({
 
       {/* ── Split panels ── */}
       <div className="flex-1 flex min-h-0">
-        <div className="w-1/2 border-r border-slate-200 overflow-auto bg-slate-100">
+        {/* Left — always light (document viewer) */}
+        <div className="w-1/2 border-r border-slate-200 dark:border-slate-700 overflow-auto bg-slate-100">
           <PageViewer page={page} status={currentStatus} />
         </div>
-        <div className="w-1/2 overflow-auto bg-white flex flex-col">
+        {/* Right — dark-mode aware */}
+        <div className="w-1/2 overflow-auto bg-white dark:bg-slate-900 flex flex-col">
           <MarkdownPanel
             markdown={currentMarkdown}
             view={markdownView}
@@ -207,19 +203,8 @@ function Spinner({ className = '' }) {
       fill="none"
       viewBox="0 0 24 24"
     >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8v8H4z"
-      />
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
     </svg>
   )
 }
