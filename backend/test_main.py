@@ -78,3 +78,22 @@ def test_convert_direct_xlsx():
     assert len(data["info"]["sheets"]) == 1
     assert data["info"]["sheets"][0]["name"] == "Sales"
     assert data["info"]["sheets"][0]["rows"] == 3
+
+
+def test_convert_to_pdf_docx():
+    if not shutil.which("libreoffice"):
+        pytest.skip("LibreOffice not installed — skipping OCR pipeline test")
+
+    docx_bytes = make_docx_bytes()
+    r = client.post(
+        "/api/convert-to-pdf",
+        files={"file": ("document.docx", docx_bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert "pages" in data
+    assert data["page_count"] >= 1
+    assert data["filename"] == "document.docx"
+    page = data["pages"][0]
+    assert "image_base64" in page
+    assert "page_number" in page

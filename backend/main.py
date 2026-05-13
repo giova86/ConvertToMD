@@ -93,6 +93,53 @@ async def convert_direct(file: UploadFile = File(...)):
     return {"filename": file.filename, "markdown": markdown, "info": info}
 
 
+@app.post("/api/convert-to-pdf")
+async def convert_to_pdf(file: UploadFile = File(...)):
+    name = file.filename.lower()
+    ext = "." + name.rsplit(".", 1)[-1] if "." in name else ""
+
+    if ext not in SUPPORTED_OCR:
+        raise HTTPException(
+            status_code=400,
+            detail=f"OCR mode supports .docx, .doc, .xlsx, .xls — got {ext}",
+        )
+
+    content = await file.read()
+
+    try:
+        pdf_bytes = convert_to_pdf_bytes(content, file.filename)
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=503,
+            detail="LibreOffice is not installed. Install it to use OCR mode for Word/Excel files.",
+        )
+    except RuntimeError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    try:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Failed to open converted PDF: {e}")
+
+    pages = []
+    mat = fitz.Matrix(RENDER_DPI / 72, RENDER_DPI / 72)
+
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        pix = page.get_pixmap(matrix=mat)
+        img_bytes = pix.tobytes("jpeg", jpg_quality=90)
+        img_b64 = base64.b64encode(img_bytes).decode("utf-8")
+        pages.append({
+            "page_number": page_num + 1,
+            "image_base64": img_b64,
+            "width": pix.width,
+            "height": pix.height,
+        })
+
+    doc.close()
+    return {"page_count": len(pages), "pages": pages, "filename": file.filename}
+
+
 @app.post("/api/ocr-page", response_model=OcrPageResponse)
 async def ocr_page(request: OcrPageRequest):
     prompt = (

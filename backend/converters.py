@@ -115,4 +115,30 @@ def xlsx_to_markdown(content: bytes) -> tuple[str, dict]:
 
 
 def convert_to_pdf_bytes(content: bytes, filename: str) -> bytes:
-    raise NotImplementedError
+    import subprocess
+    import tempfile
+    import os
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_path = os.path.join(tmpdir, filename)
+        with open(input_path, "wb") as f:
+            f.write(content)
+
+        result = subprocess.run(
+            ["libreoffice", "--headless", "--convert-to", "pdf", "--outdir", tmpdir, input_path],
+            capture_output=True,
+            timeout=120,
+        )
+
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"LibreOffice conversion failed: {result.stderr.decode(errors='replace')}"
+            )
+
+        base = os.path.splitext(filename)[0]
+        pdf_path = os.path.join(tmpdir, base + ".pdf")
+        if not os.path.exists(pdf_path):
+            raise RuntimeError("LibreOffice did not produce a PDF file")
+
+        with open(pdf_path, "rb") as f:
+            return f.read()
