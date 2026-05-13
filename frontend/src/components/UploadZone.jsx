@@ -1,6 +1,15 @@
 import { useCallback, useState } from 'react'
 import { AlertCircle, FileText, Upload } from 'lucide-react'
 
+const ACCEPTED_EXTS = ['.pdf', '.docx', '.doc', '.xlsx', '.xls']
+const ACCEPT_ATTR = ACCEPTED_EXTS.join(',')
+
+function isAccepted(file) {
+  if (!file) return false
+  const name = file.name.toLowerCase()
+  return ACCEPTED_EXTS.some((ext) => name.endsWith(ext))
+}
+
 export default function UploadZone({ onFileSelect, isLoading, error }) {
   const [isDragging, setIsDragging] = useState(false)
 
@@ -9,9 +18,7 @@ export default function UploadZone({ onFileSelect, isLoading, error }) {
       e.preventDefault()
       setIsDragging(false)
       const file = e.dataTransfer.files[0]
-      if (file?.type === 'application/pdf' || file?.name?.endsWith('.pdf')) {
-        onFileSelect(file)
-      }
+      if (isAccepted(file)) onFileSelect(file)
     },
     [onFileSelect],
   )
@@ -34,12 +41,12 @@ export default function UploadZone({ onFileSelect, isLoading, error }) {
   return (
     <div className="w-full max-w-xl">
       <div className="text-center mb-10">
-        <h1 className="text-4xl font-bold text-slate-800 mb-3 tracking-tight">
-          PDF to Markdown
+        <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-3 tracking-tight">
+          Document to Markdown
         </h1>
-        <p className="text-slate-500 text-base">
-          Upload a scanned or image-based PDF — each page is extracted and OCR'd
-          by GLM-OCR running locally on Ollama.
+        <p className="text-slate-500 dark:text-slate-400 text-base">
+          Upload a PDF, Word, or Excel file — convert to clean Markdown using direct
+          extraction or GLM-OCR running locally on Ollama.
         </p>
       </div>
 
@@ -49,8 +56,8 @@ export default function UploadZone({ onFileSelect, isLoading, error }) {
           'border-2 border-dashed rounded-2xl p-14 cursor-pointer',
           'transition-all duration-200 select-none',
           isDragging
-            ? 'border-blue-400 bg-blue-50 scale-[1.015]'
-            : 'border-slate-300 bg-white hover:border-blue-300 hover:bg-slate-50',
+            ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 scale-[1.015]'
+            : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-blue-300 hover:bg-slate-50 dark:hover:bg-slate-700',
           isLoading ? 'pointer-events-none opacity-60' : '',
         ].join(' ')}
         onDrop={handleDrop}
@@ -59,7 +66,7 @@ export default function UploadZone({ onFileSelect, isLoading, error }) {
       >
         <input
           type="file"
-          accept=".pdf,application/pdf"
+          accept={ACCEPT_ATTR}
           className="hidden"
           onChange={handleInput}
           disabled={isLoading}
@@ -68,21 +75,23 @@ export default function UploadZone({ onFileSelect, isLoading, error }) {
         {isLoading ? (
           <>
             <div className="w-14 h-14 border-4 border-blue-100 border-t-blue-500 rounded-full animate-spin mb-5" />
-            <p className="text-slate-600 font-semibold text-lg">Processing PDF…</p>
-            <p className="text-slate-400 text-sm mt-1">Converting pages to images</p>
+            <p className="text-slate-600 dark:text-slate-300 font-semibold text-lg">Processing…</p>
+            <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">Converting document</p>
           </>
         ) : (
           <>
-            <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mb-6">
+            <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-6">
               <Upload className="w-9 h-9 text-blue-500" strokeWidth={1.5} />
             </div>
-            <p className="text-slate-700 font-semibold text-xl mb-1.5">
-              Drop your PDF here
+            <p className="text-slate-700 dark:text-slate-200 font-semibold text-xl mb-1.5">
+              Drop your document here
             </p>
-            <p className="text-slate-400 text-sm mb-6">or click to browse files</p>
-            <div className="flex items-center gap-2 bg-slate-100 rounded-full px-4 py-1.5">
+            <p className="text-slate-400 dark:text-slate-500 text-sm mb-6">or click to browse files</p>
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-700 rounded-full px-4 py-1.5">
               <FileText className="w-4 h-4 text-slate-400" />
-              <span className="text-slate-500 text-sm">PDF files only</span>
+              <span className="text-slate-500 dark:text-slate-400 text-sm">
+                PDF · DOCX · DOC · XLSX · XLS
+              </span>
             </div>
           </>
         )}
