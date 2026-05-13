@@ -3,7 +3,6 @@ const BASE = '/api'
 export async function uploadPDF(file) {
   const form = new FormData()
   form.append('file', file)
-
   const res = await fetch(`${BASE}/upload`, { method: 'POST', body: form })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Upload failed' }))
@@ -21,6 +20,28 @@ export async function ocrPage(imageBase64, pageNumber) {
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'OCR failed' }))
     throw new Error(err.detail || 'OCR failed')
+  }
+  return res.json()
+}
+
+export async function convertDirect(file) {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`${BASE}/convert-direct`, { method: 'POST', body: form })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Conversion failed' }))
+    throw new Error(err.detail || 'Conversion failed')
+  }
+  return res.json()
+}
+
+export async function convertToPdf(file) {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`${BASE}/convert-to-pdf`, { method: 'POST', body: form })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Conversion failed' }))
+    throw new Error(err.detail || 'Conversion failed')
   }
   return res.json()
 }
