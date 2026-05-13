@@ -105,11 +105,11 @@ def xlsx_to_markdown(content: bytes) -> tuple[str, dict]:
         parts.append(f"## Sheet: {sheet_name}")
 
         header = non_empty[0]
-        parts.append("| " + " | ".join(str(c) if c is not None else "" for c in header) + " |")
+        parts.append("| " + " | ".join((str(c) if c is not None else "").replace("\n", " ").replace("|", "\\|") for c in header) + " |")
         parts.append("| " + " | ".join("---" for _ in header) + " |")
 
         for row in non_empty[1:]:
-            parts.append("| " + " | ".join(str(c) if c is not None else "" for c in row) + " |")
+            parts.append("| " + " | ".join((str(c) if c is not None else "").replace("\n", " ").replace("|", "\\|") for c in row) + " |")
 
     return "\n\n".join(parts), info
 
