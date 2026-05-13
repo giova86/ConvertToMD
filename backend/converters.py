@@ -1,7 +1,4 @@
 import io
-import subprocess
-import tempfile
-import os
 
 
 def _runs_to_md(runs) -> str:
@@ -24,12 +21,12 @@ def _table_to_md(table) -> str:
     rows = table.rows
     if not rows:
         return ""
-    header_cells = [c.text.strip().replace("\n", " ") for c in rows[0].cells]
+    header_cells = [c.text.strip().replace("\n", " ").replace("|", "\\|") for c in rows[0].cells]
     header = "| " + " | ".join(header_cells) + " |"
     sep = "| " + " | ".join("---" for _ in header_cells) + " |"
     data_rows = []
     for row in rows[1:]:
-        cells = [c.text.strip().replace("\n", " ") for c in row.cells]
+        cells = [c.text.strip().replace("\n", " ").replace("|", "\\|") for c in row.cells]
         data_rows.append("| " + " | ".join(cells) + " |")
     return "\n".join([header, sep] + data_rows)
 
@@ -84,7 +81,7 @@ def docx_to_markdown(content: bytes) -> tuple[str, dict]:
 
 
 def xlsx_to_markdown(content: bytes) -> tuple[str, dict]:
-    raise NotImplementedError
+    raise NotImplementedError("Excel extraction not yet implemented")
 
 
 def convert_to_pdf_bytes(content: bytes, filename: str) -> bytes:

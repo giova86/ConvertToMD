@@ -64,7 +64,7 @@ async def upload_pdf(file: UploadFile = File(...)):
 
 
 SUPPORTED_DIRECT = {".docx", ".xlsx", ".xls"}
-SUPPORTED_OCR = {".docx", ".doc", ".xlsx", ".xls"}
+SUPPORTED_OCR = {".docx", ".doc", ".xlsx", ".xls"}  # used by /api/convert-to-pdf (Task 4)
 
 
 @app.post("/api/convert-direct")
@@ -85,6 +85,8 @@ async def convert_direct(file: UploadFile = File(...)):
             markdown, info = docx_to_markdown(content)
         else:
             markdown, info = xlsx_to_markdown(content)
+    except NotImplementedError as e:
+        raise HTTPException(status_code=501, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Conversion failed: {e}")
 
