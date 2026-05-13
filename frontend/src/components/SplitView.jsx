@@ -1,0 +1,225 @@
+import { useState } from 'react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Code2,
+  Download,
+  Eye,
+  Scan,
+  ScanLine,
+} from 'lucide-react'
+import MarkdownPanel from './MarkdownPanel'
+import PageViewer from './PageViewer'
+
+export default function SplitView({
+  pdfDoc,
+  currentPage,
+  onPageChange,
+  ocrResults,
+  ocrStatus,
+  onOcrPage,
+  onOcrAll,
+  onDownloadAll,
+  isOcrAllRunning,
+}) {
+  const [markdownView, setMarkdownView] = useState('rendered') // rendered | raw
+
+  const page = pdfDoc.pages[currentPage]
+  const pageNum = page.page_number
+  const totalPages = pdfDoc.pages.length
+  const currentStatus = ocrStatus[pageNum] || 'idle'
+  const currentMarkdown = ocrResults[pageNum] || ''
+  const doneCount = Object.values(ocrStatus).filter((s) => s === 'done').length
+  const allDone = doneCount === totalPages
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0">
+      {/* ── Toolbar ── */}
+      <div className="bg-white border-b border-slate-200 px-4 py-2.5 flex items-center gap-3 flex-shrink-0 flex-wrap">
+        {/* Filename + progress */}
+        <div className="flex items-center gap-2 mr-auto min-w-0">
+          <span className="text-base">📄</span>
+          <span className="font-medium text-slate-700 text-sm truncate max-w-xs">
+            {pdfDoc.filename}
+          </span>
+          <span
+            className={[
+              'text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap',
+              allDone
+                ? 'bg-green-100 text-green-700'
+                : 'bg-slate-100 text-slate-500',
+            ].join(' ')}
+          >
+            {doneCount}/{totalPages} OCR'd
+          </span>
+        </div>
+
+        {/* Page navigation */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onPageChange(Math.max(0, currentPage - 1))}
+            disabled={currentPage === 0}
+            className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 transition-colors"
+            title="Previous page"
+          >
+            <ChevronLeft className="w-4 h-4 text-slate-600" />
+          </button>
+          <span className="text-sm font-medium text-slate-700 px-2 tabular-nums">
+            {pageNum} / {totalPages}
+          </span>
+          <button
+            onClick={() => onPageChange(Math.min(totalPages - 1, currentPage + 1))}
+            disabled={currentPage === totalPages - 1}
+            className="p-1.5 rounded-lg hover:bg-slate-100 disabled:opacity-30 transition-colors"
+            title="Next page"
+          >
+            <ChevronRight className="w-4 h-4 text-slate-600" />
+          </button>
+        </div>
+
+        {/* OCR controls */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onOcrPage(currentPage)}
+            disabled={currentStatus === 'loading' || isOcrAllRunning}
+            className={[
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all shadow-sm',
+              currentStatus === 'loading' || isOcrAllRunning
+                ? 'bg-blue-100 text-blue-400 cursor-not-allowed shadow-none'
+                : 'bg-blue-500 hover:bg-blue-600 text-white',
+            ].join(' ')}
+          >
+            {currentStatus === 'loading' ? (
+              <Spinner className="w-3.5 h-3.5 text-blue-400" />
+            ) : (
+              <Scan className="w-3.5 h-3.5" />
+            )}
+            OCR page
+          </button>
+
+          <button
+            onClick={onOcrAll}
+            disabled={isOcrAllRunning || allDone}
+            className={[
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all',
+              isOcrAllRunning || allDone
+                ? 'border-slate-200 text-slate-400 cursor-not-allowed bg-slate-50'
+                : 'border-slate-300 hover:bg-slate-50 text-slate-700',
+            ].join(' ')}
+          >
+            {isOcrAllRunning ? (
+              <Spinner className="w-3.5 h-3.5 text-slate-400" />
+            ) : (
+              <ScanLine className="w-3.5 h-3.5" />
+            )}
+            OCR all
+          </button>
+
+          {doneCount > 0 && (
+            <button
+              onClick={onDownloadAll}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-300 hover:bg-slate-50 text-slate-700 transition-all"
+              title="Download all OCR results as a single Markdown file"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Download .md
+            </button>
+          )}
+        </div>
+
+        {/* Rendered / Raw toggle */}
+        <div className="flex items-center bg-slate-100 rounded-lg p-0.5">
+          {[
+            { key: 'rendered', icon: Eye, label: 'Preview' },
+            { key: 'raw', icon: Code2, label: 'Raw' },
+          ].map(({ key, icon: Icon, label }) => (
+            <button
+              key={key}
+              onClick={() => setMarkdownView(key)}
+              className={[
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all',
+                markdownView === key
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700',
+              ].join(' ')}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Page status strip ── */}
+      {totalPages > 1 && (
+        <div className="bg-white border-b border-slate-100 px-4 py-1.5 flex items-center gap-1 overflow-x-auto flex-shrink-0">
+          {pdfDoc.pages.map((p, i) => {
+            const s = ocrStatus[p.page_number] || 'idle'
+            return (
+              <button
+                key={p.page_number}
+                onClick={() => onPageChange(i)}
+                title={`Page ${p.page_number}`}
+                className={[
+                  'w-6 h-6 rounded-md text-xs font-medium transition-all flex-shrink-0',
+                  i === currentPage
+                    ? 'ring-2 ring-blue-400 ring-offset-1'
+                    : '',
+                  s === 'done'
+                    ? 'bg-green-100 text-green-700'
+                    : s === 'loading'
+                      ? 'bg-blue-100 text-blue-500 animate-pulse'
+                      : s === 'error'
+                        ? 'bg-red-100 text-red-500'
+                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200',
+                ].join(' ')}
+              >
+                {p.page_number}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {/* ── Split panels ── */}
+      <div className="flex-1 flex min-h-0">
+        <div className="w-1/2 border-r border-slate-200 overflow-auto bg-slate-100">
+          <PageViewer page={page} status={currentStatus} />
+        </div>
+        <div className="w-1/2 overflow-auto bg-white flex flex-col">
+          <MarkdownPanel
+            markdown={currentMarkdown}
+            view={markdownView}
+            status={currentStatus}
+            onOcr={() => onOcrPage(currentPage)}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Spinner({ className = '' }) {
+  return (
+    <svg
+      className={`animate-spin ${className}`}
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8v8H4z"
+      />
+    </svg>
+  )
+}
