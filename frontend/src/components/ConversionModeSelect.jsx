@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { AlertCircle } from 'lucide-react'
 
 export default function ConversionModeSelect({
@@ -11,6 +12,14 @@ export default function ConversionModeSelect({
 }) {
   const directSupported = fileType === 'docx' || fileType === 'xlsx' || fileType === 'xls'
   const isDoc = fileType === 'doc'
+
+  // Force OCR mode when direct extraction is not available for this file type
+  // (handles .doc files where only OCR is supported)
+  useEffect(() => {
+    if (!directSupported && mode !== 'ocr') {
+      onModeChange('ocr')
+    }
+  }, [directSupported, mode, onModeChange])
 
   return (
     <div className="w-full max-w-xl">

@@ -59,7 +59,7 @@ export default function DirectView({ directResult, onDownload }) {
         {/* Right — dark-mode aware */}
         <div className="w-1/2 overflow-auto bg-white dark:bg-slate-900 flex flex-col">
           <MarkdownPanel
-            markdown={directResult.markdown}
+            markdown={directResult.markdown || '*No content extracted.*'}
             view={markdownView}
             status="done"
             onOcr={() => {}}
