@@ -1,4 +1,5 @@
 import base64
+import os
 
 import fitz  # PyMuPDF
 import httpx
@@ -107,7 +108,8 @@ async def convert_to_pdf(file: UploadFile = File(...)):
     content = await file.read()
 
     try:
-        pdf_bytes = convert_to_pdf_bytes(content, file.filename)
+        safe_filename = os.path.basename(file.filename)
+        pdf_bytes = convert_to_pdf_bytes(content, safe_filename)
     except FileNotFoundError:
         raise HTTPException(
             status_code=503,

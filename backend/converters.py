@@ -124,11 +124,14 @@ def convert_to_pdf_bytes(content: bytes, filename: str) -> bytes:
         with open(input_path, "wb") as f:
             f.write(content)
 
-        result = subprocess.run(
-            ["libreoffice", "--headless", "--convert-to", "pdf", "--outdir", tmpdir, input_path],
-            capture_output=True,
-            timeout=120,
-        )
+        try:
+            result = subprocess.run(
+                ["libreoffice", "--headless", "--convert-to", "pdf", "--outdir", tmpdir, input_path],
+                capture_output=True,
+                timeout=120,
+            )
+        except subprocess.TimeoutExpired:
+            raise RuntimeError("LibreOffice timed out after 120 seconds")
 
         if result.returncode != 0:
             raise RuntimeError(
