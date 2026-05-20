@@ -52,8 +52,8 @@ export default function DirectView({ directResult, onDownload }) {
 
       {/* Split panels */}
       <div className="flex-1 flex min-h-0">
-        {/* Left — always white (document info area) */}
-        <div className="w-1/2 border-r border-slate-200 dark:border-slate-700 overflow-auto bg-slate-100">
+        {/* Left — document info area */}
+        <div className="w-1/2 border-r border-slate-200 dark:border-slate-700 overflow-auto bg-slate-100 dark:bg-slate-800">
           <DocInfoPanel info={directResult.info} filename={directResult.filename} />
         </div>
         {/* Right — dark-mode aware */}

@@ -3,6 +3,8 @@ backend/__pycache__/
 backend/*.pyc
 backend/venv/
 *.egg-info/
+__pycache__/
+*.pyc
 
 # Node
 frontend/node_modules/
@@ -10,3 +12,14 @@ frontend/dist/
 
 # OS
 .DS_Store
+**/.DS_Store
+
+# Local tool config (Claude Code, editor settings, etc.)
+.claude/
+
+# Runtime I/O — user documents are never committed
+raw/
+output/
+
+# Internal AI planning documents
+docs/superpowers/

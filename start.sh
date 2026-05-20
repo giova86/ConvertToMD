@@ -2,6 +2,8 @@
 set -e
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
+echo "==> Starting Ollama…"
+ollama serve &
 
 echo "==> Installing backend dependencies…"
 cd "$ROOT/backend"

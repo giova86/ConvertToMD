@@ -1,5 +1,8 @@
 import { useCallback, useState } from 'react'
 import { AlertCircle, FileText, Upload } from 'lucide-react'
+import logoFront from '../assets/logo_fornt.png'
+import logoFrontDark from '../assets/logo_fornt_dark.png'
+import { useTheme } from '../ThemeContext'
 
 const ACCEPTED_EXTS = ['.pdf', '.docx', '.doc', '.xlsx', '.xls']
 const ACCEPT_ATTR = ACCEPTED_EXTS.join(',')
@@ -12,6 +15,7 @@ function isAccepted(file) {
 
 export default function UploadZone({ onFileSelect, isLoading, error }) {
   const [isDragging, setIsDragging] = useState(false)
+  const { isDark } = useTheme()
 
   const handleDrop = useCallback(
     (e) => {
@@ -41,9 +45,8 @@ export default function UploadZone({ onFileSelect, isLoading, error }) {
   return (
     <div className="w-full max-w-xl">
       <div className="text-center mb-10">
-        <h1 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-3 tracking-tight">
-          Document to Markdown
-        </h1>
+        <img src={isDark ? logoFrontDark : logoFront} alt="pdf2mrk" className="h-24 object-contain mx-auto mb-3" />
+        <br></br>
         <p className="text-slate-500 dark:text-slate-400 text-base">
           Upload a PDF, Word, or Excel file — convert to clean Markdown using direct
           extraction or GLM-OCR running locally on Ollama.

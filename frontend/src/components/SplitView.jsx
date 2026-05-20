@@ -177,8 +177,8 @@ export default function SplitView({
 
       {/* ── Split panels ── */}
       <div className="flex-1 flex min-h-0">
-        {/* Left — always light (document viewer) */}
-        <div className="w-1/2 border-r border-slate-200 dark:border-slate-700 overflow-auto bg-slate-100">
+        {/* Left — document viewer */}
+        <div className="w-1/2 border-r border-slate-200 dark:border-slate-700 flex flex-col bg-slate-100 dark:bg-slate-800">
           <PageViewer page={page} status={currentStatus} />
         </div>
         {/* Right — dark-mode aware */}

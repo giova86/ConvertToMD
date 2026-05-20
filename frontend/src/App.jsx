@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
-import { FileUp, Moon, Sun } from 'lucide-react'
+import logo from './assets/logo.png'
+import logoDark from './assets/logo_dark.png'
+import { ExternalLink, FileUp, Moon, Sun } from 'lucide-react'
 import { useTheme } from './ThemeContext'
 import UploadZone from './components/UploadZone'
 import SplitView from './components/SplitView'
@@ -177,30 +179,36 @@ export default function App() {
   }, [directResult])
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-screen flex flex-col overflow-hidden">
       <Header onNew={appState === 'ready' ? resetState : null} />
 
       {(appState === 'idle' || appState === 'uploading') && (
-        <main className="flex-1 flex items-center justify-center p-8 bg-slate-50 dark:bg-slate-900">
-          <UploadZone
-            onFileSelect={handleFileSelect}
-            isLoading={appState === 'uploading'}
-            error={uploadError}
-          />
+        <main className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900">
+          <div className="flex-1 flex items-center justify-center p-8">
+            <UploadZone
+              onFileSelect={handleFileSelect}
+              isLoading={appState === 'uploading'}
+              error={uploadError}
+            />
+          </div>
+          <PortfolioFooter />
         </main>
       )}
 
       {appState === 'mode-select' && (
-        <main className="flex-1 flex items-center justify-center p-8 bg-slate-50 dark:bg-slate-900">
-          <ConversionModeSelect
-            file={pendingFile}
-            fileType={fileType}
-            mode={conversionMode}
-            onModeChange={setConversionMode}
-            onStart={handleStartConversion}
-            isLoading={appState === 'uploading'}
-            error={uploadError}
-          />
+        <main className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900">
+          <div className="flex-1 flex items-center justify-center p-8">
+            <ConversionModeSelect
+              file={pendingFile}
+              fileType={fileType}
+              mode={conversionMode}
+              onModeChange={setConversionMode}
+              onStart={handleStartConversion}
+              isLoading={appState === 'uploading'}
+              error={uploadError}
+            />
+          </div>
+          <PortfolioFooter />
         </main>
       )}
 
@@ -225,16 +233,30 @@ export default function App() {
   )
 }
 
+function PortfolioFooter() {
+  return (
+    <div className="flex justify-center pb-5">
+      <a
+        href="https://giova86.github.io/business_card/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors group"
+      >
+        <span>Made by Giovanni Bocchi</span>
+        <ExternalLink className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity" />
+      </a>
+    </div>
+  )
+}
+
 function Header({ onNew }) {
   const { isDark, toggleTheme } = useTheme()
 
   return (
     <header className="bg-slate-900 text-white px-6 py-3 flex items-center justify-between flex-shrink-0 shadow-lg">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
-          <span className="text-white font-bold text-sm select-none">p</span>
-        </div>
-        <span className="font-bold text-lg tracking-tight">pdf2mrk</span>
+        <img src={isDark ? logoDark : logo} alt="pdf2mrk logo" className="w-8 h-8 object-contain flex-shrink-0" />
+        <span className="font-bold text-lg tracking-tight">ConvertToMD</span>
         <span className="text-slate-500 text-sm hidden sm:inline">Docs → Markdown</span>
       </div>
 
