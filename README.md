@@ -1,5 +1,11 @@
 # ConvertToMD — Document to Markdown Converter
 
+<p align="center">
+  <img src="hero.png" width="100%">
+</p>
+
+
+
 **ConvertToMD** is a fully local web application that converts PDF, DOCX, DOC, XLSX, and XLS files into clean, well-structured Markdown. All processing happens on your machine — no file is ever uploaded to an external service.
 
 The application offers two conversion modes:
