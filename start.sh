@@ -1,35 +1,115 @@
 #!/usr/bin/env bash
-set -e
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-echo "==> Starting Ollama…"
-ollama serve &
 
-echo "==> Installing backend dependencies…"
+# ── colors ────────────────────────────────────────────────────────────────────
+RESET='\033[0m'
+BOLD='\033[1m'
+DIM='\033[2m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+RED='\033[31m'
+WHITE='\033[97m'
+BG_DARK='\033[48;5;235m'
+
+# ── helpers ───────────────────────────────────────────────────────────────────
+info()    { printf "  ${CYAN}▸${RESET}  %s\n" "$*"; }
+ok()      { printf "  ${GREEN}✔${RESET}  %s\n" "$*"; }
+warn()    { printf "  ${YELLOW}⚠${RESET}  %s\n" "$*"; }
+err()     { printf "  ${RED}✖${RESET}  %s\n" "$*" >&2; }
+step()    { printf "\n  ${BOLD}${WHITE}%s${RESET}\n" "$*"; }
+divider() { printf "  ${DIM}%s${RESET}\n" "────────────────────────────────────────"; }
+
+# ── header ────────────────────────────────────────────────────────────────────
+clear
+printf "\n"
+printf "  ${BOLD}${CYAN}╔══════════════════════════════════════╗${RESET}\n"
+printf "  ${BOLD}${CYAN}║${RESET}  ${BOLD}${WHITE}ConvertToMD${RESET}  ${DIM}— dev environment${RESET}     ${BOLD}${CYAN}║${RESET}\n"
+printf "  ${BOLD}${CYAN}╚══════════════════════════════════════╝${RESET}\n"
+printf "\n"
+
+# ── shutdown handler ──────────────────────────────────────────────────────────
+ALL_PIDS=()
+
+cleanup() {
+  printf "\n\n"
+  divider
+  info "Shutting down…"
+  for pid in "${ALL_PIDS[@]}"; do
+    kill "$pid" 2>/dev/null && ok "Stopped PID $pid"
+  done
+  # Kill any child processes spawned by this session
+  kill -- -$$ 2>/dev/null
+  divider
+  printf "  ${GREEN}${BOLD}All services stopped.${RESET}\n\n"
+  exit 0
+}
+
+trap cleanup INT TERM
+
+# ── ollama ────────────────────────────────────────────────────────────────────
+step "Ollama"
+divider
+info "Starting Ollama server…"
+ollama serve &>/dev/null &
+OLLAMA_PID=$!
+ALL_PIDS+=("$OLLAMA_PID")
+sleep 1
+if kill -0 "$OLLAMA_PID" 2>/dev/null; then
+  ok "Ollama running  ${DIM}(PID $OLLAMA_PID)${RESET}"
+else
+  warn "Ollama may already be running — continuing"
+fi
+
+# ── backend ───────────────────────────────────────────────────────────────────
+step "Backend"
+divider
 cd "$ROOT/backend"
-# Use existing venv if present, otherwise install globally
 if [ -f "venv/bin/activate" ]; then
   source venv/bin/activate
+  ok "Activated virtualenv"
 fi
-pip install -r requirements.txt -q
-
-echo "==> Starting backend on http://localhost:8000"
-uvicorn main:app --reload --port 8000 &
+info "Installing dependencies…"
+pip install -r requirements.txt -q && ok "Dependencies ready"
+info "Starting FastAPI server…"
+uvicorn main:app --reload --port 8000 &>/dev/null &
 BACKEND_PID=$!
+ALL_PIDS+=("$BACKEND_PID")
+sleep 1
+if kill -0 "$BACKEND_PID" 2>/dev/null; then
+  ok "Backend running   ${DIM}http://localhost:8000  (PID $BACKEND_PID)${RESET}"
+else
+  err "Backend failed to start"; cleanup
+fi
 
-echo "==> Installing frontend dependencies…"
+# ── frontend ──────────────────────────────────────────────────────────────────
+step "Frontend"
+divider
 cd "$ROOT/frontend"
-npm install --silent
-
-echo "==> Starting frontend on http://localhost:5173"
-npm run dev &
+info "Installing dependencies…"
+npm install --silent && ok "Dependencies ready"
+info "Starting Vite dev server…"
+npm run dev &>/dev/null &
 FRONTEND_PID=$!
+ALL_PIDS+=("$FRONTEND_PID")
+sleep 2
+if kill -0 "$FRONTEND_PID" 2>/dev/null; then
+  ok "Frontend running  ${DIM}http://localhost:5173  (PID $FRONTEND_PID)${RESET}"
+else
+  err "Frontend failed to start"; cleanup
+fi
 
-echo ""
-echo "  pdf2mrk is running!"
-echo "  Open: http://localhost:5173"
-echo ""
-echo "  Press Ctrl+C to stop both servers."
+# ── ready ─────────────────────────────────────────────────────────────────────
+printf "\n"
+printf "  ${BOLD}${CYAN}╔══════════════════════════════════════╗${RESET}\n"
+printf "  ${BOLD}${CYAN}║${RESET}  ${GREEN}${BOLD}✔  All services are running${RESET}          ${BOLD}${CYAN}║${RESET}\n"
+printf "  ${BOLD}${CYAN}║${RESET}                                        ${BOLD}${CYAN}║${RESET}\n"
+printf "  ${BOLD}${CYAN}║${RESET}  ${WHITE}App  →  ${CYAN}http://localhost:5173${RESET}        ${BOLD}${CYAN}║${RESET}\n"
+printf "  ${BOLD}${CYAN}║${RESET}  ${WHITE}API  →  ${CYAN}http://localhost:8000${RESET}        ${BOLD}${CYAN}║${RESET}\n"
+printf "  ${BOLD}${CYAN}║${RESET}                                        ${BOLD}${CYAN}║${RESET}\n"
+printf "  ${BOLD}${CYAN}║${RESET}  ${DIM}Press Ctrl+C to stop all services${RESET}   ${BOLD}${CYAN}║${RESET}\n"
+printf "  ${BOLD}${CYAN}╚══════════════════════════════════════╝${RESET}\n"
+printf "\n"
 
-trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null; echo 'Stopped.'" INT TERM
 wait
