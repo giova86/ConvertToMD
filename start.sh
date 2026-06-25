@@ -66,10 +66,22 @@ fi
 step "Backend"
 divider
 cd "$ROOT/backend"
-if [ -f "venv/bin/activate" ]; then
-  source venv/bin/activate
-  ok "Activated virtualenv"
+
+# Controlla se il venv non esiste
+if [ ! -f "venv/bin/activate" ]; then
+  info "Virtualenv non trovato. Creazione in corso con Python 3.13..."
+  
+  # Verifica se python3.13 è installato nel sistema
+  if command -v python3.13 &>/dev/null; then
+    python3.13 -m venv venv && ok "Virtualenv creato con successo"
+  else
+    err "Python 3.13 non è installato nel sistema. Impossibile creare il venv."; cleanup
+  fi
 fi
+
+# Attiva il venv (ora esistente)
+source venv/bin/activate && ok "Activated virtualenv"
+
 info "Installing dependencies…"
 pip install -r requirements.txt -q && ok "Dependencies ready"
 info "Starting FastAPI server…"
