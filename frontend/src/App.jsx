@@ -1,13 +1,14 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import logo from './assets/logo.png'
 import logoDark from './assets/logo_dark.png'
-import { ExternalLink, FileUp, Moon, Sun } from 'lucide-react'
+import { ExternalLink, FileUp, Moon, Settings, Sun } from 'lucide-react'
 import { useTheme } from './ThemeContext'
 import UploadZone from './components/UploadZone'
 import SplitView from './components/SplitView'
 import DirectView from './components/DirectView'
 import ConversionModeSelect from './components/ConversionModeSelect'
-import { convertDirect, convertToPdf, ocrPage, uploadPDF } from './api'
+import SettingsModal from './components/SettingsModal'
+import { convertDirect, convertToPdf, getSettings, ocrPage, uploadPDF } from './api'
 
 function getFileType(file) {
   const name = file.name.toLowerCase()
@@ -32,6 +33,8 @@ export default function App() {
   const [uploadError, setUploadError] = useState(null)
   const [isOcrAllRunning, setIsOcrAllRunning] = useState(false)
   const ocrStatusRef = useRef({})
+  const [settings, setSettings] = useState(null)
+  const [showSettings, setShowSettings] = useState(false)
 
   const resetState = useCallback(() => {
     setAppState('idle')
@@ -46,6 +49,10 @@ export default function App() {
     ocrStatusRef.current = {}
     setUploadError(null)
     setIsOcrAllRunning(false)
+  }, [])
+
+  useEffect(() => {
+    getSettings().then(setSettings).catch(() => {})
   }, [])
 
   const handleFileSelect = useCallback((file) => {
@@ -180,7 +187,19 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      <Header onNew={appState === 'ready' ? resetState : null} />
+      <Header onNew={appState === 'ready' ? resetState : null} onOpenSettings={() => setShowSettings(true)} />
+
+      {settings && (
+        <SettingsModal
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+          settings={settings}
+          onSaved={(saved) => {
+            setSettings(saved)
+            setShowSettings(false)
+          }}
+        />
+      )}
 
       {(appState === 'idle' || appState === 'uploading') && (
         <main className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900">
@@ -249,7 +268,7 @@ function PortfolioFooter() {
   )
 }
 
-function Header({ onNew }) {
+function Header({ onNew, onOpenSettings }) {
   const { isDark, toggleTheme } = useTheme()
 
   return (
@@ -261,6 +280,13 @@ function Header({ onNew }) {
       </div>
 
       <div className="flex items-center gap-2">
+        <button
+          onClick={onOpenSettings}
+          className="p-2 rounded-lg hover:bg-slate-700 transition-colors"
+          title="Impostazioni connessione"
+        >
+          <Settings className="w-4 h-4 text-slate-300" />
+        </button>
         <button
           onClick={toggleTheme}
           className="p-2 rounded-lg hover:bg-slate-700 transition-colors"
