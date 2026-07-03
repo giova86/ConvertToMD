@@ -8,6 +8,7 @@ import openpyxl
 
 from main import app
 import settings_store
+import llm_backends
 
 client = TestClient(app)
 
@@ -142,3 +143,79 @@ def test_convert_to_pdf_docx():
     page = data["pages"][0]
     assert "image_base64" in page
     assert "page_number" in page
+
+
+class _FakeBackend:
+    def __init__(self, models=None, raises=None):
+        self._models = models or []
+        self._raises = raises
+
+    async def list_models(self):
+        if self._raises:
+            raise self._raises
+        return self._models
+
+    async def ocr_image(self, image_b64, prompt, model):
+        if self._raises:
+            raise self._raises
+        return "# fake markdown"
+
+
+def test_get_models_uses_saved_settings_by_default(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings_store, "CONFIG_PATH", str(tmp_path / "config.json"))
+    settings_store.save_settings({
+        "backend_type": "ollama",
+        "base_url": "http://localhost:11434",
+        "api_key": None,
+        "default_model": "glm-ocr:latest",
+    })
+    monkeypatch.setattr(
+        "main.get_backend",
+        lambda backend_type, base_url, api_key=None: _FakeBackend(models=["glm-ocr:latest", "llava:latest"]),
+    )
+
+    r = client.get("/api/models")
+
+    assert r.status_code == 200
+    assert r.json() == {"models": ["glm-ocr:latest", "llava:latest"]}
+
+
+def test_get_models_query_params_override_saved_settings(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings_store, "CONFIG_PATH", str(tmp_path / "config.json"))
+    captured = {}
+
+    def fake_get_backend(backend_type, base_url, api_key=None):
+        captured["backend_type"] = backend_type
+        captured["base_url"] = base_url
+        return _FakeBackend(models=["qwen2-vl-7b"])
+
+    monkeypatch.setattr("main.get_backend", fake_get_backend)
+
+    r = client.get("/api/models", params={"backend_type": "lmstudio", "base_url": "http://localhost:1234"})
+
+    assert r.status_code == 200
+    assert captured == {"backend_type": "lmstudio", "base_url": "http://localhost:1234"}
+
+
+def test_get_models_returns_503_on_connection_error(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings_store, "CONFIG_PATH", str(tmp_path / "config.json"))
+    monkeypatch.setattr(
+        "main.get_backend",
+        lambda backend_type, base_url, api_key=None: _FakeBackend(raises=llm_backends.BackendConnectionError("refused")),
+    )
+
+    r = client.get("/api/models")
+
+    assert r.status_code == 503
+
+
+def test_get_models_returns_502_on_backend_error(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings_store, "CONFIG_PATH", str(tmp_path / "config.json"))
+    monkeypatch.setattr(
+        "main.get_backend",
+        lambda backend_type, base_url, api_key=None: _FakeBackend(raises=llm_backends.BackendResponseError("status 500")),
+    )
+
+    r = client.get("/api/models")
+
+    assert r.status_code == 502

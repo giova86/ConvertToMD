@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from converters import docx_to_markdown, xlsx_to_markdown, convert_to_pdf_bytes
 import settings_store
+from llm_backends import get_backend, BackendConnectionError, BackendResponseError
 
 app = FastAPI(title="pdf2mrk API")
 
@@ -40,6 +41,10 @@ class SettingsModel(BaseModel):
     base_url: str
     api_key: str | None = None
     default_model: str
+
+
+class ModelsResponse(BaseModel):
+    models: list[str]
 
 
 @app.post("/api/upload")
@@ -203,6 +208,28 @@ async def get_settings():
 async def put_settings(settings: SettingsModel):
     saved = settings_store.save_settings(settings.model_dump())
     return SettingsModel(**saved)
+
+
+@app.get("/api/models", response_model=ModelsResponse)
+async def get_models(
+    backend_type: str | None = None,
+    base_url: str | None = None,
+    api_key: str | None = None,
+):
+    settings = settings_store.load_settings()
+    bt = backend_type or settings["backend_type"]
+    bu = base_url or settings["base_url"]
+    ak = api_key if api_key is not None else settings["api_key"]
+
+    backend = get_backend(bt, bu, ak)
+    try:
+        models = await backend.list_models()
+    except BackendConnectionError:
+        raise HTTPException(status_code=503, detail=f"Cannot connect to {bt} at {bu}")
+    except BackendResponseError as e:
+        raise HTTPException(status_code=502, detail=f"{bt} returned an error: {e}")
+
+    return ModelsResponse(models=models)
 
 
 @app.get("/api/health")
