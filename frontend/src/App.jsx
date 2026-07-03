@@ -112,7 +112,7 @@ export default function App() {
       setConversionMode(type === 'doc' ? 'ocr' : 'direct')
       setAppState('mode-select')
     }
-  }, [])
+  }, [settings])
 
   const handleStartConversion = useCallback(
     async (mode) => {
@@ -141,7 +141,7 @@ export default function App() {
         setAppState('mode-select')
       }
     },
-    [pendingFile],
+    [pendingFile, settings],
   )
 
   const handleOcrPage = useCallback(
