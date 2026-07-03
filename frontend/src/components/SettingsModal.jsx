@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Loader2, Settings as SettingsIcon, X } from 'lucide-react'
+import { ChevronDown, Loader2, Settings as SettingsIcon, X } from 'lucide-react'
 import { getModels, saveSettings } from '../api'
 
 const BACKEND_TYPES = [
@@ -8,14 +8,20 @@ const BACKEND_TYPES = [
   { value: 'vllm', label: 'vLLM', defaultUrl: 'http://localhost:8000' },
 ]
 
-export default function SettingsModal({ isOpen, onClose, settings, onSaved }) {
+export default function SettingsModal({
+  isOpen,
+  onClose,
+  settings,
+  onSaved,
+  knownConnectionOk = false,
+  knownModels = [],
+}) {
   const [backendType, setBackendType] = useState(settings.backend_type)
   const [baseUrl, setBaseUrl] = useState(settings.base_url)
   const [apiKey, setApiKey] = useState(settings.api_key || '')
   const [defaultModel, setDefaultModel] = useState(settings.default_model)
   const [testState, setTestState] = useState('idle') // idle | testing | ok | error
   const [testModels, setTestModels] = useState([])
-  const [testError, setTestError] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
 
@@ -25,32 +31,52 @@ export default function SettingsModal({ isOpen, onClose, settings, onSaved }) {
       setBaseUrl(settings.base_url)
       setApiKey(settings.api_key || '')
       setDefaultModel(settings.default_model)
-      setTestState('idle')
-      setTestModels([])
-      setTestError(null)
+      if (knownConnectionOk) {
+        setTestState('ok')
+        setTestModels(knownModels)
+      } else {
+        setTestState('idle')
+        setTestModels([])
+      }
       setSaveError(null)
     }
-  }, [isOpen, settings])
+  }, [isOpen, settings, knownConnectionOk, knownModels])
 
   if (!isOpen) return null
+
+  const modelOptions = testState === 'ok' ? testModels : []
+
+  const resetTestState = () => {
+    setTestState('idle')
+  }
 
   const handleBackendTypeChange = (value) => {
     setBackendType(value)
     const preset = BACKEND_TYPES.find((b) => b.value === value)
     const isUntouched = BACKEND_TYPES.some((b) => b.defaultUrl === baseUrl)
     if (preset && (isUntouched || !baseUrl)) setBaseUrl(preset.defaultUrl)
+    resetTestState()
+  }
+
+  const handleBaseUrlChange = (value) => {
+    setBaseUrl(value)
+    resetTestState()
+  }
+
+  const handleApiKeyChange = (value) => {
+    setApiKey(value)
+    resetTestState()
   }
 
   const handleTestConnection = async () => {
     setTestState('testing')
-    setTestError(null)
     try {
       const models = await getModels({ backendType, baseUrl, apiKey })
       setTestModels(models)
       setTestState('ok')
       if (!defaultModel && models.length > 0) setDefaultModel(models[0])
-    } catch (err) {
-      setTestError(err.message || 'Connection failed')
+    } catch {
+      setTestModels([])
       setTestState('error')
     }
   }
@@ -91,17 +117,20 @@ export default function SettingsModal({ isOpen, onClose, settings, onSaved }) {
             <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
               Tipo di server
             </label>
-            <select
-              value={backendType}
-              onChange={(e) => handleBackendTypeChange(e.target.value)}
-              className="w-full text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 rounded-lg px-3 py-2"
-            >
-              {BACKEND_TYPES.map((b) => (
-                <option key={b.value} value={b.value}>
-                  {b.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={backendType}
+                onChange={(e) => handleBackendTypeChange(e.target.value)}
+                className="appearance-none w-full text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 rounded-lg pl-3 pr-8 py-2"
+              >
+                {BACKEND_TYPES.map((b) => (
+                  <option key={b.value} value={b.value}>
+                    {b.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
+            </div>
           </div>
 
           <div>
@@ -109,7 +138,7 @@ export default function SettingsModal({ isOpen, onClose, settings, onSaved }) {
             <input
               type="text"
               value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
+              onChange={(e) => handleBaseUrlChange(e.target.value)}
               className="w-full text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 rounded-lg px-3 py-2"
             />
           </div>
@@ -121,42 +150,56 @@ export default function SettingsModal({ isOpen, onClose, settings, onSaved }) {
             <input
               type="password"
               value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
+              onChange={(e) => handleApiKeyChange(e.target.value)}
               className="w-full text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 rounded-lg px-3 py-2"
             />
           </div>
 
-          <button
-            onClick={handleTestConnection}
-            disabled={testState === 'testing'}
-            className="flex items-center gap-2 text-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg px-3 py-1.5"
-          >
-            {testState === 'testing' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            Testa connessione
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleTestConnection}
+              disabled={testState === 'testing'}
+              className="flex items-center gap-2 text-sm border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg px-3 py-1.5"
+            >
+              {testState === 'testing' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Testa connessione
+            </button>
 
-          {testState === 'error' && (
-            <p className="text-sm text-red-500">{testError}</p>
-          )}
+            {testState === 'ok' && (
+              <span className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400">
+                <span className="w-2 h-2 rounded-full bg-green-500" />
+                Connesso
+              </span>
+            )}
+            {testState === 'error' && (
+              <span className="flex items-center gap-1.5 text-sm text-red-600 dark:text-red-400">
+                <span className="w-2 h-2 rounded-full bg-red-500" />
+                Errore connessione
+              </span>
+            )}
+          </div>
 
-          {testState === 'ok' && (
-            <div>
-              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                Modello di default
-              </label>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+              Modello di default
+            </label>
+            <div className="relative">
               <select
-                value={defaultModel}
+                value={defaultModel || ''}
                 onChange={(e) => setDefaultModel(e.target.value)}
-                className="w-full text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 rounded-lg px-3 py-2"
+                disabled={modelOptions.length === 0}
+                className="appearance-none w-full text-sm border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 rounded-lg pl-3 pr-8 py-2 disabled:opacity-50"
               >
-                {testModels.map((m) => (
+                {modelOptions.length === 0 && <option value="">Testa la connessione per vedere i modelli</option>}
+                {modelOptions.map((m) => (
                   <option key={m} value={m}>
                     {m}
                   </option>
                 ))}
               </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
             </div>
-          )}
+          </div>
 
           {saveError && <p className="text-sm text-red-500">{saveError}</p>}
         </div>

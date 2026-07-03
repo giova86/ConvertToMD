@@ -9,7 +9,6 @@ import DirectView from './components/DirectView'
 import ConversionModeSelect from './components/ConversionModeSelect'
 import SettingsModal from './components/SettingsModal'
 import ConnectionErrorBanner from './components/ConnectionErrorBanner'
-import ModelPicker from './components/ModelPicker'
 import { convertDirect, convertToPdf, getModels, getSettings, ocrPage, saveSettings, uploadPDF } from './api'
 
 function getFileType(file) {
@@ -230,6 +229,8 @@ export default function App() {
           isOpen={showSettings}
           onClose={() => setShowSettings(false)}
           settings={settings}
+          knownConnectionOk={connectionStatus === 'ok'}
+          knownModels={models}
           onSaved={(saved) => {
             setSettings(saved)
             setShowSettings(false)
@@ -252,21 +253,11 @@ export default function App() {
               />
             )}
             {connectionStatus === 'ok' && (
-              <>
-                <ModelPicker
-                  models={models}
-                  value={settings?.default_model}
-                  onChange={async (model) => {
-                    const saved = await saveSettings({ ...settings, default_model: model })
-                    setSettings(saved)
-                  }}
-                />
-                <UploadZone
-                  onFileSelect={handleFileSelect}
-                  isLoading={appState === 'uploading'}
-                  error={uploadError}
-                />
-              </>
+              <UploadZone
+                onFileSelect={handleFileSelect}
+                isLoading={appState === 'uploading'}
+                error={uploadError}
+              />
             )}
           </div>
           <PortfolioFooter />
