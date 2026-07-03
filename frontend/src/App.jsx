@@ -32,6 +32,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState(0)
   const [ocrResults, setOcrResults] = useState({})
   const [ocrStatus, setOcrStatus] = useState({})
+  const [pageModels, setPageModels] = useState({})
   const [uploadError, setUploadError] = useState(null)
   const [isOcrAllRunning, setIsOcrAllRunning] = useState(false)
   const ocrStatusRef = useRef({})
@@ -52,6 +53,7 @@ export default function App() {
     setOcrResults({})
     setOcrStatus({})
     ocrStatusRef.current = {}
+    setPageModels({})
     setUploadError(null)
     setIsOcrAllRunning(false)
   }, [])
@@ -97,6 +99,7 @@ export default function App() {
           setOcrResults({})
           setOcrStatus({})
           ocrStatusRef.current = {}
+          setPageModels(Object.fromEntries(data.pages.map((p) => [p.page_number, settings?.default_model])))
           setAppState('ready')
         })
         .catch((err) => {
@@ -129,6 +132,7 @@ export default function App() {
           setOcrResults({})
           setOcrStatus({})
           ocrStatusRef.current = {}
+          setPageModels(Object.fromEntries(data.pages.map((p) => [p.page_number, settings?.default_model])))
           setConversionMode('ocr')
           setAppState('ready')
         }
@@ -145,13 +149,14 @@ export default function App() {
       if (!pdfDoc) return
       const page = pdfDoc.pages[pageIndex]
       const pageNum = page.page_number
+      const model = pageModels[pageNum] || settings?.default_model
       setOcrStatus((prev) => {
         const next = { ...prev, [pageNum]: 'loading' }
         ocrStatusRef.current = next
         return next
       })
       try {
-        const result = await ocrPage(page.image_base64, pageNum)
+        const result = await ocrPage(page.image_base64, pageNum, model)
         setOcrResults((prev) => ({ ...prev, [pageNum]: result.markdown }))
         setOcrStatus((prev) => {
           const next = { ...prev, [pageNum]: 'done' }
@@ -166,8 +171,12 @@ export default function App() {
         })
       }
     },
-    [pdfDoc],
+    [pdfDoc, pageModels, settings],
   )
+
+  const handlePageModelChange = useCallback((pageNum, model) => {
+    setPageModels((prev) => ({ ...prev, [pageNum]: model }))
+  }, [])
 
   const handleOcrAll = useCallback(async () => {
     if (!pdfDoc || isOcrAllRunning) return
@@ -290,6 +299,9 @@ export default function App() {
           onOcrAll={handleOcrAll}
           onDownloadAll={handleDownloadAll}
           isOcrAllRunning={isOcrAllRunning}
+          models={models}
+          pageModel={pageModels[pdfDoc.pages[currentPage].page_number] || settings?.default_model}
+          onPageModelChange={(model) => handlePageModelChange(pdfDoc.pages[currentPage].page_number, model)}
         />
       )}
 

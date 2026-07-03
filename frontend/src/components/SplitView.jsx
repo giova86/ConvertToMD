@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import MarkdownPanel from './MarkdownPanel'
 import PageViewer from './PageViewer'
+import ModelPicker from './ModelPicker'
 
 export default function SplitView({
   pdfDoc,
@@ -21,6 +22,9 @@ export default function SplitView({
   onOcrAll,
   onDownloadAll,
   isOcrAllRunning,
+  models,
+  pageModel,
+  onPageModelChange,
 }) {
   const [markdownView, setMarkdownView] = useState('rendered')
 
@@ -74,6 +78,14 @@ export default function SplitView({
             <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />
           </button>
         </div>
+
+        <ModelPicker
+          models={models}
+          value={pageModel}
+          onChange={onPageModelChange}
+          label=""
+          className="mr-1"
+        />
 
         <div className="flex items-center gap-2">
           <button
