@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 import openpyxl
 
 from main import app
+import settings_store
 
 client = TestClient(app)
 
@@ -41,6 +42,50 @@ def test_health():
     r = client.get("/api/health")
     assert r.status_code == 200
     assert r.json() == {"status": "ok"}
+
+
+def test_get_settings_returns_defaults_when_no_config(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings_store, "CONFIG_PATH", str(tmp_path / "config.json"))
+
+    r = client.get("/api/settings")
+
+    assert r.status_code == 200
+    data = r.json()
+    assert data["backend_type"] == "ollama"
+    assert data["base_url"] == "http://localhost:11434"
+    assert data["default_model"] == "glm-ocr:latest"
+    assert data["api_key"] is None
+
+
+def test_put_settings_persists_and_returns_saved_values(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings_store, "CONFIG_PATH", str(tmp_path / "config.json"))
+
+    r = client.put("/api/settings", json={
+        "backend_type": "lmstudio",
+        "base_url": "http://localhost:1234",
+        "api_key": "sk-test",
+        "default_model": "qwen2-vl-7b",
+    })
+
+    assert r.status_code == 200
+    data = r.json()
+    assert data["backend_type"] == "lmstudio"
+    assert data["default_model"] == "qwen2-vl-7b"
+
+    r2 = client.get("/api/settings")
+    assert r2.json()["backend_type"] == "lmstudio"
+
+
+def test_put_settings_rejects_unknown_backend_type(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings_store, "CONFIG_PATH", str(tmp_path / "config.json"))
+
+    r = client.put("/api/settings", json={
+        "backend_type": "not-a-real-backend",
+        "base_url": "http://localhost:1234",
+        "default_model": "x",
+    })
+
+    assert r.status_code == 422
 
 
 def test_convert_direct_docx():

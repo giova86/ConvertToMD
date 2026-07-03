@@ -1,5 +1,6 @@
 import base64
 import os
+from typing import Literal
 
 import fitz  # PyMuPDF
 import httpx
@@ -8,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from converters import docx_to_markdown, xlsx_to_markdown, convert_to_pdf_bytes
+import settings_store
 
 app = FastAPI(title="pdf2mrk API")
 
@@ -31,6 +33,13 @@ class OcrPageRequest(BaseModel):
 class OcrPageResponse(BaseModel):
     page_number: int
     markdown: str
+
+
+class SettingsModel(BaseModel):
+    backend_type: Literal["ollama", "lmstudio", "vllm"]
+    base_url: str
+    api_key: str | None = None
+    default_model: str
 
 
 @app.post("/api/upload")
@@ -183,6 +192,17 @@ async def ocr_page(request: OcrPageRequest):
             raise HTTPException(status_code=500, detail=str(e))
 
     return OcrPageResponse(page_number=request.page_number, markdown=markdown)
+
+
+@app.get("/api/settings", response_model=SettingsModel)
+async def get_settings():
+    return SettingsModel(**settings_store.load_settings())
+
+
+@app.put("/api/settings", response_model=SettingsModel)
+async def put_settings(settings: SettingsModel):
+    saved = settings_store.save_settings(settings.model_dump())
+    return SettingsModel(**saved)
 
 
 @app.get("/api/health")
