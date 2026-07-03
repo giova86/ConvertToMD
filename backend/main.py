@@ -221,7 +221,11 @@ async def get_models(
     bu = base_url or settings["base_url"]
     ak = api_key if api_key is not None else settings["api_key"]
 
-    backend = get_backend(bt, bu, ak)
+    try:
+        backend = get_backend(bt, bu, ak)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     try:
         models = await backend.list_models()
     except BackendConnectionError:

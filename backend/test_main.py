@@ -219,3 +219,11 @@ def test_get_models_returns_502_on_backend_error(tmp_path, monkeypatch):
     r = client.get("/api/models")
 
     assert r.status_code == 502
+
+
+def test_get_models_returns_400_for_invalid_backend_type(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings_store, "CONFIG_PATH", str(tmp_path / "config.json"))
+
+    r = client.get("/api/models", params={"backend_type": "not-a-real-backend", "base_url": "http://localhost:1"})
+
+    assert r.status_code == 400
