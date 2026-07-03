@@ -25,6 +25,7 @@ export default function SplitView({
   models,
   pageModel,
   onPageModelChange,
+  backendLabel,
 }) {
   const [markdownView, setMarkdownView] = useState('rendered')
 
@@ -200,6 +201,8 @@ export default function SplitView({
             view={markdownView}
             status={currentStatus}
             onOcr={() => onOcrPage(currentPage)}
+            backendLabel={backendLabel}
+            model={pageModel}
           />
         </div>
       </div>

@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Check, Copy, Download, Scan } from 'lucide-react'
 
-export default function MarkdownPanel({ markdown, view, status, onOcr }) {
+export default function MarkdownPanel({ markdown, view, status, onOcr, backendLabel, model }) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
@@ -30,7 +30,7 @@ export default function MarkdownPanel({ markdown, view, status, onOcr }) {
         </div>
         <p className="text-slate-600 dark:text-slate-300 font-semibold mb-1.5">No OCR result yet</p>
         <p className="text-slate-400 dark:text-slate-500 text-sm mb-7 max-w-xs">
-          Click "OCR page" in the toolbar to extract text from this page using GLM-OCR
+          Click "OCR page" in the toolbar to extract text from this page using {model || 'the configured model'}
         </p>
         <button
           onClick={onOcr}
@@ -55,7 +55,7 @@ export default function MarkdownPanel({ markdown, view, status, onOcr }) {
             <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
           </svg>
-          <p className="text-slate-600 dark:text-slate-300 font-semibold">Extracting text with GLM-OCR…</p>
+          <p className="text-slate-600 dark:text-slate-300 font-semibold">Extracting text with {model || 'the configured model'}…</p>
           <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">This may take a moment</p>
         </div>
       </div>
@@ -68,9 +68,9 @@ export default function MarkdownPanel({ markdown, view, status, onOcr }) {
         <div className="text-center bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-2xl p-8 max-w-xs">
           <p className="text-red-500 font-semibold mb-2">OCR failed</p>
           <p className="text-slate-500 dark:text-slate-400 text-sm mb-5">
-            Make sure Ollama is running and{' '}
-            <code className="bg-red-50 dark:bg-red-900/30 px-1 rounded">glm-ocr:latest</code>{' '}
-            is installed.
+            Make sure {backendLabel || 'the configured backend'} is running and{' '}
+            <code className="bg-red-50 dark:bg-red-900/30 px-1 rounded">{model || 'the selected model'}</code>{' '}
+            is available.
           </p>
           <button
             onClick={onOcr}

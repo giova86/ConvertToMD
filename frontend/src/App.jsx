@@ -22,6 +22,8 @@ function getFileType(file) {
   return null
 }
 
+const BACKEND_LABELS = { ollama: 'Ollama', lmstudio: 'LM Studio', vllm: 'vLLM' }
+
 export default function App() {
   const [appState, setAppState] = useState('idle') // idle | mode-select | uploading | ready
   const [pendingFile, setPendingFile] = useState(null)
@@ -302,6 +304,7 @@ export default function App() {
           models={models}
           pageModel={pageModels[pdfDoc.pages[currentPage].page_number] || settings?.default_model}
           onPageModelChange={(model) => handlePageModelChange(pdfDoc.pages[currentPage].page_number, model)}
+          backendLabel={BACKEND_LABELS[settings?.backend_type] || settings?.backend_type}
         />
       )}
 
