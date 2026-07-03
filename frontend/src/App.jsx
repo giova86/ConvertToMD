@@ -8,7 +8,9 @@ import SplitView from './components/SplitView'
 import DirectView from './components/DirectView'
 import ConversionModeSelect from './components/ConversionModeSelect'
 import SettingsModal from './components/SettingsModal'
-import { convertDirect, convertToPdf, getSettings, ocrPage, uploadPDF } from './api'
+import ConnectionErrorBanner from './components/ConnectionErrorBanner'
+import ModelPicker from './components/ModelPicker'
+import { convertDirect, convertToPdf, getModels, getSettings, ocrPage, saveSettings, uploadPDF } from './api'
 
 function getFileType(file) {
   const name = file.name.toLowerCase()
@@ -35,6 +37,9 @@ export default function App() {
   const ocrStatusRef = useRef({})
   const [settings, setSettings] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState('checking') // checking | ok | error
+  const [connectionError, setConnectionError] = useState(null)
+  const [models, setModels] = useState([])
 
   const resetState = useCallback(() => {
     setAppState('idle')
@@ -51,9 +56,29 @@ export default function App() {
     setIsOcrAllRunning(false)
   }, [])
 
-  useEffect(() => {
-    getSettings().then(setSettings).catch(() => {})
+  const checkConnection = useCallback(async () => {
+    setConnectionStatus('checking')
+    setConnectionError(null)
+    try {
+      const loadedSettings = await getSettings()
+      setSettings(loadedSettings)
+      const loadedModels = await getModels()
+      if (loadedModels.length === 0) {
+        setConnectionError('Nessun modello disponibile sul server configurato.')
+        setConnectionStatus('error')
+        return
+      }
+      setModels(loadedModels)
+      setConnectionStatus('ok')
+    } catch (err) {
+      setConnectionError(err.message || 'Impossibile verificare la connessione.')
+      setConnectionStatus('error')
+    }
   }, [])
+
+  useEffect(() => {
+    checkConnection()
+  }, [checkConnection])
 
   const handleFileSelect = useCallback((file) => {
     setUploadError(null)
@@ -197,18 +222,41 @@ export default function App() {
           onSaved={(saved) => {
             setSettings(saved)
             setShowSettings(false)
+            checkConnection()
           }}
         />
       )}
 
       {(appState === 'idle' || appState === 'uploading') && (
         <main className="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900">
-          <div className="flex-1 flex items-center justify-center p-8">
-            <UploadZone
-              onFileSelect={handleFileSelect}
-              isLoading={appState === 'uploading'}
-              error={uploadError}
-            />
+          <div className="flex-1 flex flex-col items-center justify-center p-8 gap-5">
+            {connectionStatus === 'checking' && (
+              <p className="text-slate-400 dark:text-slate-500 text-sm">Verifica connessione al server OCR…</p>
+            )}
+            {connectionStatus === 'error' && (
+              <ConnectionErrorBanner
+                message={connectionError}
+                onOpenSettings={() => setShowSettings(true)}
+                onRetry={checkConnection}
+              />
+            )}
+            {connectionStatus === 'ok' && (
+              <>
+                <ModelPicker
+                  models={models}
+                  value={settings?.default_model}
+                  onChange={async (model) => {
+                    const saved = await saveSettings({ ...settings, default_model: model })
+                    setSettings(saved)
+                  }}
+                />
+                <UploadZone
+                  onFileSelect={handleFileSelect}
+                  isLoading={appState === 'uploading'}
+                  error={uploadError}
+                />
+              </>
+            )}
           </div>
           <PortfolioFooter />
         </main>
