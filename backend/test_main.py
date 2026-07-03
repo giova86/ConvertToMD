@@ -227,3 +227,66 @@ def test_get_models_returns_400_for_invalid_backend_type(tmp_path, monkeypatch):
     r = client.get("/api/models", params={"backend_type": "not-a-real-backend", "base_url": "http://localhost:1"})
 
     assert r.status_code == 400
+
+
+def test_ocr_page_uses_request_model_when_provided(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings_store, "CONFIG_PATH", str(tmp_path / "config.json"))
+    settings_store.save_settings({
+        "backend_type": "ollama",
+        "base_url": "http://localhost:11434",
+        "api_key": None,
+        "default_model": "glm-ocr:latest",
+    })
+    captured = {}
+
+    class RecordingBackend(_FakeBackend):
+        async def ocr_image(self, image_b64, prompt, model):
+            captured["model"] = model
+            return "# recorded"
+
+    monkeypatch.setattr("main.get_backend", lambda backend_type, base_url, api_key=None: RecordingBackend())
+
+    r = client.post("/api/ocr-page", json={
+        "image_base64": "abc",
+        "page_number": 1,
+        "model": "llava:latest",
+    })
+
+    assert r.status_code == 200
+    assert r.json()["markdown"] == "# recorded"
+    assert captured["model"] == "llava:latest"
+
+
+def test_ocr_page_falls_back_to_default_model_when_omitted(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings_store, "CONFIG_PATH", str(tmp_path / "config.json"))
+    settings_store.save_settings({
+        "backend_type": "ollama",
+        "base_url": "http://localhost:11434",
+        "api_key": None,
+        "default_model": "glm-ocr:latest",
+    })
+    captured = {}
+
+    class RecordingBackend(_FakeBackend):
+        async def ocr_image(self, image_b64, prompt, model):
+            captured["model"] = model
+            return "# recorded"
+
+    monkeypatch.setattr("main.get_backend", lambda backend_type, base_url, api_key=None: RecordingBackend())
+
+    r = client.post("/api/ocr-page", json={"image_base64": "abc", "page_number": 1})
+
+    assert r.status_code == 200
+    assert captured["model"] == "glm-ocr:latest"
+
+
+def test_ocr_page_returns_503_when_backend_unreachable(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings_store, "CONFIG_PATH", str(tmp_path / "config.json"))
+    monkeypatch.setattr(
+        "main.get_backend",
+        lambda backend_type, base_url, api_key=None: _FakeBackend(raises=llm_backends.BackendConnectionError("refused")),
+    )
+
+    r = client.post("/api/ocr-page", json={"image_base64": "abc", "page_number": 1})
+
+    assert r.status_code == 503

@@ -3,7 +3,6 @@ import os
 from typing import Literal
 
 import fitz  # PyMuPDF
-import httpx
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -21,14 +20,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-OCR_MODEL = "glm-ocr:latest"
 RENDER_DPI = 200
 
 
 class OcrPageRequest(BaseModel):
     image_base64: str
     page_number: int
+    model: str | None = None
 
 
 class OcrPageResponse(BaseModel):
@@ -170,31 +168,19 @@ async def ocr_page(request: OcrPageRequest):
         "Output only the Markdown content, no preamble or explanation."
     )
 
-    payload = {
-        "model": OCR_MODEL,
-        "prompt": prompt,
-        "images": [request.image_base64],
-        "stream": False,
-    }
+    settings = settings_store.load_settings()
+    model = request.model or settings["default_model"]
+    backend = get_backend(settings["backend_type"], settings["base_url"], settings["api_key"])
 
-    async with httpx.AsyncClient(timeout=180.0) as client:
-        try:
-            response = await client.post(OLLAMA_URL, json=payload)
-            response.raise_for_status()
-            data = response.json()
-            markdown = data.get("response", "").strip()
-        except httpx.ConnectError:
-            raise HTTPException(
-                status_code=503,
-                detail="Cannot connect to Ollama. Make sure it is running on http://localhost:11434",
-            )
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(
-                status_code=502,
-                detail=f"Ollama returned status {e.response.status_code}",
-            )
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+    try:
+        markdown = await backend.ocr_image(request.image_base64, prompt, model)
+    except BackendConnectionError:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Cannot connect to {settings['backend_type']} at {settings['base_url']}",
+        )
+    except BackendResponseError as e:
+        raise HTTPException(status_code=502, detail=f"{settings['backend_type']} returned an error: {e}")
 
     return OcrPageResponse(page_number=request.page_number, markdown=markdown)
 
