@@ -13,7 +13,10 @@ export async function uploadPDF(file) {
 
 export async function getSettings() {
   const res = await fetch(`${BASE}/settings`)
-  if (!res.ok) throw new Error('Failed to load settings')
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Failed to load settings' }))
+    throw new Error(err.detail || 'Failed to load settings')
+  }
   return res.json()
 }
 
@@ -34,7 +37,7 @@ export async function getModels({ backendType, baseUrl, apiKey } = {}) {
   const params = new URLSearchParams()
   if (backendType) params.set('backend_type', backendType)
   if (baseUrl) params.set('base_url', baseUrl)
-  if (apiKey) params.set('api_key', apiKey)
+  if (apiKey !== undefined) params.set('api_key', apiKey)
   const qs = params.toString()
   const res = await fetch(`${BASE}/models${qs ? `?${qs}` : ''}`)
   if (!res.ok) {
