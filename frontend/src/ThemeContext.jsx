@@ -9,6 +9,8 @@ export function ThemeProvider({ children }) {
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark)
+    const favicon = document.getElementById('favicon')
+    if (favicon) favicon.href = isDark ? '/favicon-dark.png' : '/favicon.png'
     localStorage.setItem('pdf2mrk-theme', isDark ? 'dark' : 'light')
   }, [isDark])
 

@@ -11,7 +11,7 @@ from converters import docx_to_markdown, xlsx_to_markdown, convert_to_pdf_bytes,
 import settings_store
 from llm_backends import get_backend, BackendConnectionError, BackendResponseError
 
-app = FastAPI(title="pdf2mrk API")
+app = FastAPI(title="ConvertToMD API")
 
 app.add_middleware(
     CORSMiddleware,

@@ -358,7 +358,7 @@ function Header({ onNew, onOpenSettings }) {
   return (
     <header className="bg-slate-900 text-white px-6 py-3 flex items-center justify-between flex-shrink-0 shadow-lg">
       <div className="flex items-center gap-3">
-        <img src={isDark ? logoDark : logo} alt="pdf2mrk logo" className="w-8 h-8 object-contain flex-shrink-0" />
+        <img src={isDark ? logoDark : logo} alt="ConvertToMD logo" className="w-8 h-8 object-contain flex-shrink-0" />
         <span className="font-bold text-lg tracking-tight">ConvertToMD</span>
         <span className="text-slate-500 text-sm hidden sm:inline">Docs → Markdown</span>
       </div>

@@ -45,7 +45,7 @@ export default function UploadZone({ onFileSelect, isLoading, onCancel, error })
   return (
     <div className="w-full max-w-xl">
       <div className="text-center mb-10">
-        <img src={isDark ? logoFrontDark : logoFront} alt="pdf2mrk" className="h-24 object-contain mx-auto mb-3" />
+        <img src={isDark ? logoFrontDark : logoFront} alt="ConvertToMD" className="h-24 object-contain mx-auto mb-3" />
         <br></br>
         <p className="text-slate-500 dark:text-slate-400 text-base">
           Upload a PDF, Word, or Excel file — convert to clean Markdown using direct
