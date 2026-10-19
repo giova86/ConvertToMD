@@ -12,7 +12,7 @@ echo "▸ Frontend build"
 
 echo "▸ App icon"
 ICONSET="$BUILD/icon.iconset"; mkdir -p "$ICONSET"
-SRC="frontend/public/apple-touch-icon.png"
+SRC="frontend/public/favicon-dark.png"
 for s in 16 32 128 256 512; do
   sips -z $s $s "$SRC" --out "$ICONSET/icon_${s}x${s}.png" >/dev/null
   sips -z $((s*2)) $((s*2)) "$SRC" --out "$ICONSET/icon_${s}x${s}@2x.png" >/dev/null
