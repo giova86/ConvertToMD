@@ -142,10 +142,10 @@ export default function SplitView({
             <button
               onClick={onDownloadAll}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all"
-              title="Download all OCR results as a single Markdown file"
+              title="Download all OCR results: .md, or .zip with images when the document has figures"
             >
               <Download className="w-3.5 h-3.5" />
-              Download .md
+              Download
             </button>
           )}
         </div>
@@ -216,6 +216,7 @@ export default function SplitView({
             onOcr={() => onOcrPage(currentPage)}
             backendLabel={backendLabel}
             model={pageModel}
+            downloadName={`${pdfDoc.filename.replace(/\.[^.]+$/, '')}_page${pdfDoc.pages[currentPage].page_number}`}
           />
         </div>
       </div>

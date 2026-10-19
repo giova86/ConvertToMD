@@ -1,5 +1,5 @@
 import { useContext, useState } from 'react'
-import { ImageContext } from '../imageStore'
+import { ImageContext, downloadMarkdown } from '../imageStore'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -13,7 +13,7 @@ const normalizeMath = (md) =>
     .replace(/\\\[([\s\S]+?)\\\]/g, (_, m) => `\n$$\n${m}\n$$\n`)
     .replace(/\\\(([\s\S]+?)\\\)/g, (_, m) => `$${m}$`)
 
-export default function MarkdownPanel({ markdown, view, status, onOcr, backendLabel, model }) {
+export default function MarkdownPanel({ markdown, view, status, onOcr, backendLabel, model, downloadName = 'page' }) {
   const [copied, setCopied] = useState(false)
   const images = useContext(ImageContext)
 
@@ -23,15 +23,8 @@ export default function MarkdownPanel({ markdown, view, status, onOcr, backendLa
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleDownload = () => {
-    const blob = new Blob([markdown], { type: 'text/markdown' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'page.md'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
+  // Plain .md for text-only content, .zip (md + images/) when figures are referenced
+  const handleDownload = () => downloadMarkdown(downloadName, markdown, images)
 
   if (status === 'idle' || (!markdown && status !== 'loading' && status !== 'error')) {
     return (
@@ -114,7 +107,7 @@ export default function MarkdownPanel({ markdown, view, status, onOcr, backendLa
           className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 px-2.5 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
         >
           <Download className="w-3.5 h-3.5" />
-          Save .md
+          Save
         </button>
       </div>
 

@@ -87,9 +87,12 @@ git clone https://github.com/giova86/ConvertToMD
 cd ConvertToMD
 ```
 
-### 2. Pull the OCR model
+### 2. Prepare an LLM backend (OCR mode only)
+
+`start.sh` does not start any LLM engine. Run the one you prefer yourself (Ollama, LM Studio or vLLM) and pick it, with its URL and model, in the app's **Settings**. For example, with Ollama:
 
 ```bash
+ollama serve   # if it isn't already running
 ollama pull glm-ocr:latest
 ```
 
@@ -100,11 +103,10 @@ ollama pull glm-ocr:latest
 ```
 
 The script will:
-1. Start Ollama in the background
-2. Install Python backend dependencies (inside an existing `venv` if present, otherwise globally)
-3. Start the FastAPI backend on `http://localhost:8000`
-4. Install Node frontend dependencies
-5. Start the Vite dev server on `http://localhost:5173`
+1. Install Python backend dependencies (inside an existing `venv` if present, otherwise globally)
+2. Start the FastAPI backend on `http://localhost:8000`
+3. Install Node frontend dependencies
+4. Start the Vite dev server on `http://localhost:5173`
 
 Open `http://localhost:5173` in your browser.
 
@@ -220,6 +222,8 @@ The backend exposes the following REST endpoints on `http://localhost:8000`:
 | `POST` | `/api/convert-direct` | Direct DOCX/XLSX → Markdown extraction (DOCX images returned in `images`) |
 | `POST` | `/api/convert-to-pdf` | Convert DOCX/DOC/XLSX/XLS to PDF via LibreOffice, then render pages and extract figures |
 | `POST` | `/api/ocr-page` | Run OCR on a single base64-encoded page image |
+| `GET` / `PUT` | `/api/settings` | Read / save the LLM engine settings |
+| `GET`  | `/api/models` | List the models available on the configured (or given) engine |
 | `GET`  | `/api/health` | Health check |
 
 Interactive API documentation is available at `http://localhost:8000/docs` (Swagger UI).
@@ -228,10 +232,19 @@ Interactive API documentation is available at `http://localhost:8000/docs` (Swag
 
 ## Configuration
 
+LLM engine settings are edited in the app (**Settings**) and stored in `backend/config.json` (git-ignored):
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `backend_type` | `ollama` | LLM engine: `ollama`, `lmstudio` or `vllm` |
+| `base_url` | `http://localhost:11434` | Engine API endpoint |
+| `api_key` | none | Optional API key |
+| `default_model` | `glm-ocr:latest` | Model used for OCR (can be overridden per page) |
+
+Other options:
+
 | Variable | Location | Default | Description |
 |----------|----------|---------|-------------|
-| `OLLAMA_URL` | `backend/main.py` | `http://localhost:11434/api/generate` | Ollama API endpoint |
-| `OCR_MODEL` | `backend/main.py` | `glm-ocr:latest` | Ollama model used for OCR |
 | `RENDER_DPI` | `backend/main.py` | `200` | Page render resolution |
 | Backend port | `start.sh` | `8000` | Uvicorn listen port |
 | Frontend port | `frontend/vite.config.js` | `5173` | Vite dev server port |

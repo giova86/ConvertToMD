@@ -46,20 +46,6 @@ cleanup() {
 
 trap cleanup INT TERM
 
-# ── ollama ────────────────────────────────────────────────────────────────────
-step "Ollama"
-divider
-info "Starting Ollama server…"
-ollama serve &>/dev/null &
-OLLAMA_PID=$!
-ALL_PIDS+=("$OLLAMA_PID")
-sleep 1
-if kill -0 "$OLLAMA_PID" 2>/dev/null; then
-  ok "Ollama running  ${DIM}(PID $OLLAMA_PID)${RESET}"
-else
-  warn "Ollama may already be running — continuing"
-fi
-
 # ── backend ───────────────────────────────────────────────────────────────────
 step "Backend"
 divider

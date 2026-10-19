@@ -25,7 +25,7 @@ export default function DirectView({ directResult, onDownload }) {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all"
         >
           <Download className="w-3.5 h-3.5" />
-          Download .md
+          Download
         </button>
 
         <div className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-lg p-0.5">
@@ -63,6 +63,7 @@ export default function DirectView({ directResult, onDownload }) {
             view={markdownView}
             status="done"
             onOcr={() => {}}
+            downloadName={directResult.filename.replace(/\.[^.]+$/, '')}
           />
         </div>
       </div>
