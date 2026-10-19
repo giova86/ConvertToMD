@@ -112,6 +112,17 @@ Open `http://localhost:5173` in your browser.
 
 Press `Ctrl+C` to stop all services.
 
+### macOS app
+
+Build a standalone `ConvertToMD.app` (native window via pywebview, backend bundled with PyInstaller):
+
+```bash
+./macapp/build.sh
+open dist/ConvertToMD.app
+```
+
+Requires Python 3.13 (python.org build, or set `PYTHON=/path/to/python3`), Node.js 18+ and the Xcode command line tools. Settings are stored in `~/Library/Application Support/ConvertToMD/config.json`. The app is unsigned: on first launch right-click it and choose **Open**.
+
 ### Manual setup (alternative)
 
 **Backend:**

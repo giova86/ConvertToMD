@@ -238,3 +238,11 @@ async def get_models(
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+# Packaged app: serve the built frontend from the same origin as the API.
+_dist = os.environ.get("CONVERTTOMD_FRONTEND_DIST")
+if _dist and os.path.isdir(_dist):
+    from fastapi.staticfiles import StaticFiles
+
+    app.mount("/", StaticFiles(directory=_dist, html=True), name="frontend")

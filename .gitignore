@@ -24,3 +24,6 @@ output/
 
 # Internal AI planning documents
 docs/superpowers/
+
+build/
+dist/
