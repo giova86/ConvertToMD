@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeftRight, ArrowUpDown, Minus, Plus } from 'lucide-react'
+import { ArrowLeftRight, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Minus, Plus } from 'lucide-react'
 
 // Vertical space consumed by padding + label (mt-3 12px + text line 16px + pad top/bottom 32px + 2px buffer)
 const V_RESERVED = 62
 // Horizontal space consumed by left+right padding
 const H_RESERVED = 32
 
-export default function PageViewer({ page, status }) {
+export default function PageViewer({ page, status, currentPage, totalPages, onPageChange }) {
   // zoom: 'fit' | 'fitV' | 'fitW' | number
   const [zoom, setZoom] = useState('fit')
   const [fitV, setFitV] = useState(1) // scale that fills available height
@@ -57,7 +57,24 @@ export default function PageViewer({ page, status }) {
   return (
     <div className="flex flex-col h-full">
       {/* ── Zoom bar ── */}
-      <div className="flex items-center justify-center gap-1.5 px-4 py-2 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 flex-shrink-0">
+      <div className="flex items-center justify-center flex-wrap gap-1.5 px-4 py-2 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 flex-shrink-0">
+        <button onClick={() => onPageChange(0)} disabled={currentPage === 0} title="First page" className={`${btnIcon} disabled:opacity-30`}>
+          <ChevronsLeft className="w-4 h-4" />
+        </button>
+        <button onClick={() => onPageChange(Math.max(0, currentPage - 1))} disabled={currentPage === 0} title="Previous page" className={`${btnIcon} disabled:opacity-30`}>
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <span className="text-xs font-medium text-slate-600 dark:text-slate-300 min-w-16 text-center tabular-nums select-none">
+          {page.page_number} / {totalPages}
+        </span>
+        <button onClick={() => onPageChange(Math.min(totalPages - 1, currentPage + 1))} disabled={currentPage === totalPages - 1} title="Next page" className={`${btnIcon} disabled:opacity-30`}>
+          <ChevronRight className="w-4 h-4" />
+        </button>
+        <button onClick={() => onPageChange(totalPages - 1)} disabled={currentPage === totalPages - 1} title="Last page" className={`${btnIcon} disabled:opacity-30`}>
+          <ChevronsRight className="w-4 h-4" />
+        </button>
+        <div className="w-px h-4 bg-slate-200 dark:bg-slate-600 mx-1" />
+
         <button onClick={zoomOut} title="Zoom out" className={btnIcon}>
           <Minus className="w-3.5 h-3.5" />
         </button>

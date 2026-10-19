@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import {
-  ChevronLeft,
-  ChevronRight,
   Code2,
   Download,
   Eye,
@@ -58,28 +56,6 @@ export default function SplitView({
           >
             {doneCount}/{totalPages} OCR'd
           </span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => onPageChange(Math.max(0, currentPage - 1))}
-            disabled={currentPage === 0}
-            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
-            title="Previous page"
-          >
-            <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-          </button>
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-200 px-2 tabular-nums">
-            {pageNum} / {totalPages}
-          </span>
-          <button
-            onClick={() => onPageChange(Math.min(totalPages - 1, currentPage + 1))}
-            disabled={currentPage === totalPages - 1}
-            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 transition-colors"
-            title="Next page"
-          >
-            <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-          </button>
         </div>
 
         <ModelPicker
@@ -205,7 +181,13 @@ export default function SplitView({
       <div className="flex-1 flex min-h-0">
         {/* Left — document viewer */}
         <div className="w-1/2 border-r border-slate-200 dark:border-slate-700 flex flex-col bg-slate-100 dark:bg-slate-800">
-          <PageViewer page={page} status={currentStatus} />
+          <PageViewer
+            page={page}
+            status={currentStatus}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+          />
         </div>
         {/* Right — dark-mode aware */}
         <div className="w-1/2 overflow-auto bg-white dark:bg-slate-900 flex flex-col">
