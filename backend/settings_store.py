@@ -1,7 +1,10 @@
 import json
 import os
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
+# The packaged Mac app sets CONVERTTOMD_CONFIG_DIR (the bundle is read-only).
+CONFIG_PATH = os.path.join(
+    os.environ.get("CONVERTTOMD_CONFIG_DIR") or os.path.dirname(__file__), "config.json"
+)
 
 DEFAULT_SETTINGS = {
     "backend_type": "ollama",
@@ -21,6 +24,7 @@ def load_settings() -> dict:
 
 def save_settings(settings: dict) -> dict:
     merged = {**DEFAULT_SETTINGS, **settings}
+    os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
     with open(CONFIG_PATH, "w") as f:
         json.dump(merged, f, indent=2)
     return merged
