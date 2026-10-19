@@ -13,18 +13,24 @@ def _resource_dir() -> Path:
     return Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
 
 
+PREFERRED_PORT = 47821  # fixed so the web origin (and its localStorage) is stable across launches
+
+
 def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
+    for port in (PREFERRED_PORT, 0):
+        with socket.socket() as s:
+            try:
+                s.bind(("127.0.0.1", port))
+            except OSError:
+                continue
+            return s.getsockname()[1]
+    raise RuntimeError("no free port")
 
 
 def main() -> None:
     root = _resource_dir()
-    os.environ.setdefault(
-        "CONVERTTOMD_CONFIG_DIR",
-        str(Path.home() / "Library" / "Application Support" / "ConvertToMD"),
-    )
+    support_dir = Path.home() / "Library" / "Application Support" / "ConvertToMD"
+    os.environ.setdefault("CONVERTTOMD_CONFIG_DIR", str(support_dir))
     os.environ.setdefault("CONVERTTOMD_FRONTEND_DIST", str(root / "frontend_dist"))
     sys.path.insert(0, str(root / "backend"))
 
@@ -49,7 +55,7 @@ def main() -> None:
 
     webview.settings["ALLOW_DOWNLOADS"] = True
     webview.create_window("ConvertToMD", url, width=1400, height=900, min_size=(900, 600))
-    webview.start()
+    webview.start(private_mode=False, storage_path=str(support_dir / "webview"))
     server.should_exit = True
 
 
