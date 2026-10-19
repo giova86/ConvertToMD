@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ImageContext, downloadMarkdown, placeFigures } from './imageStore'
 import logo from './assets/logo.png'
 import logoDark from './assets/logo_dark.png'
 import { ExternalLink, FileUp, Moon, Settings, Sun } from 'lucide-react'
@@ -37,6 +38,9 @@ export default function App() {
   const [uploadError, setUploadError] = useState(null)
   const [isOcrAllRunning, setIsOcrAllRunning] = useState(false)
   const ocrStatusRef = useRef({})
+  const uploadAbortRef = useRef(null)
+  const ocrAbortRef = useRef(new Set())
+  const ocrAllCancelledRef = useRef(false)
   const [settings, setSettings] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState('checking') // checking | ok | error
@@ -44,6 +48,8 @@ export default function App() {
   const [models, setModels] = useState([])
 
   const resetState = useCallback(() => {
+    ocrAllCancelledRef.current = true
+    ocrAbortRef.current.forEach((c) => c.abort())
     setAppState('idle')
     setPendingFile(null)
     setFileType(null)
@@ -92,7 +98,9 @@ export default function App() {
     }
     if (type === 'pdf') {
       setAppState('uploading')
-      uploadPDF(file)
+      const controller = new AbortController()
+      uploadAbortRef.current = controller
+      uploadPDF(file, controller.signal)
         .then((data) => {
           setPdfDoc(data)
           setConversionMode('ocr')
@@ -104,6 +112,7 @@ export default function App() {
           setAppState('ready')
         })
         .catch((err) => {
+          if (err.name === 'AbortError') return
           setUploadError(err.message || 'Failed to process PDF')
           setAppState('idle')
         })
@@ -120,14 +129,16 @@ export default function App() {
       if (!pendingFile) return
       setUploadError(null)
       setAppState('uploading')
+      const controller = new AbortController()
+      uploadAbortRef.current = controller
       try {
         if (mode === 'direct') {
-          const data = await convertDirect(pendingFile)
-          setDirectResult({ markdown: data.markdown, info: data.info, filename: data.filename })
+          const data = await convertDirect(pendingFile, controller.signal)
+          setDirectResult({ markdown: data.markdown, info: data.info, filename: data.filename, images: data.images || [] })
           setConversionMode('direct')
           setAppState('ready')
         } else {
-          const data = await convertToPdf(pendingFile)
+          const data = await convertToPdf(pendingFile, controller.signal)
           setPdfDoc(data)
           setCurrentPage(0)
           setOcrResults({})
@@ -138,12 +149,25 @@ export default function App() {
           setAppState('ready')
         }
       } catch (err) {
+        if (err.name === 'AbortError') return
         setUploadError(err.message || 'Conversion failed')
         setAppState('mode-select')
       }
     },
     [pendingFile, settings],
   )
+
+  const handleCancelUpload = useCallback(() => {
+    uploadAbortRef.current?.abort()
+    uploadAbortRef.current = null
+    setUploadError(null)
+    setAppState(pendingFile ? 'mode-select' : 'idle')
+  }, [pendingFile])
+
+  const handleCancelOcr = useCallback(() => {
+    ocrAllCancelledRef.current = true
+    ocrAbortRef.current.forEach((c) => c.abort())
+  }, [])
 
   const handleOcrPage = useCallback(
     async (pageIndex) => {
@@ -156,20 +180,25 @@ export default function App() {
         ocrStatusRef.current = next
         return next
       })
+      const controller = new AbortController()
+      ocrAbortRef.current.add(controller)
       try {
-        const result = await ocrPage(page.image_base64, pageNum, model)
-        setOcrResults((prev) => ({ ...prev, [pageNum]: result.markdown }))
+        const result = await ocrPage(page.image_base64, pageNum, model, controller.signal)
+        setOcrResults((prev) => ({ ...prev, [pageNum]: placeFigures(result.markdown, page.figures) }))
         setOcrStatus((prev) => {
           const next = { ...prev, [pageNum]: 'done' }
           ocrStatusRef.current = next
           return next
         })
-      } catch {
+      } catch (err) {
+        const status = err.name === 'AbortError' ? 'idle' : 'error'
         setOcrStatus((prev) => {
-          const next = { ...prev, [pageNum]: 'error' }
+          const next = { ...prev, [pageNum]: status }
           ocrStatusRef.current = next
           return next
         })
+      } finally {
+        ocrAbortRef.current.delete(controller)
       }
     },
     [pdfDoc, pageModels, settings],
@@ -182,13 +211,22 @@ export default function App() {
   const handleOcrAll = useCallback(async () => {
     if (!pdfDoc || isOcrAllRunning) return
     setIsOcrAllRunning(true)
+    ocrAllCancelledRef.current = false
     for (let i = 0; i < pdfDoc.pages.length; i++) {
+      if (ocrAllCancelledRef.current) break
       const pageNum = pdfDoc.pages[i].page_number
       if (ocrStatusRef.current[pageNum] === 'done') continue
       await handleOcrPage(i)
     }
     setIsOcrAllRunning(false)
   }, [pdfDoc, isOcrAllRunning, handleOcrPage])
+
+  const images = useMemo(() => {
+    const map = {}
+    ;(directResult?.images || []).forEach((i) => { map[i.name] = i.image_base64 })
+    ;(pdfDoc?.pages || []).forEach((p) => (p.figures || []).forEach((f) => { map[f.name] = f.image_base64 }))
+    return map
+  }, [directResult, pdfDoc])
 
   const handleDownloadAll = useCallback(() => {
     if (!pdfDoc) return
@@ -200,27 +238,16 @@ export default function App() {
           : `## Page ${p.page_number}\n\n*(no OCR result)*`
       })
       .join('\n\n---\n\n')
-    const blob = new Blob([combined], { type: 'text/markdown' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = pdfDoc.filename.replace(/\.(pdf|docx?|xlsx?)$/i, '') + '.md'
-    a.click()
-    URL.revokeObjectURL(url)
-  }, [pdfDoc, ocrResults])
+    downloadMarkdown(pdfDoc.filename.replace(/\.(pdf|docx?|xlsx?)$/i, ''), combined, images)
+  }, [pdfDoc, ocrResults, images])
 
   const handleDirectDownload = useCallback(() => {
     if (!directResult) return
-    const blob = new Blob([directResult.markdown], { type: 'text/markdown' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = directResult.filename.replace(/\.(docx?|xlsx?)$/i, '') + '.md'
-    a.click()
-    URL.revokeObjectURL(url)
-  }, [directResult])
+    downloadMarkdown(directResult.filename.replace(/\.(docx?|xlsx?)$/i, ''), directResult.markdown, images)
+  }, [directResult, images])
 
   return (
+    <ImageContext.Provider value={images}>
     <div className="h-screen flex flex-col overflow-hidden">
       <Header onNew={appState === 'ready' ? resetState : null} onOpenSettings={() => setShowSettings(true)} />
 
@@ -256,6 +283,7 @@ export default function App() {
               <UploadZone
                 onFileSelect={handleFileSelect}
                 isLoading={appState === 'uploading'}
+                onCancel={handleCancelUpload}
                 error={uploadError}
               />
             )}
@@ -290,6 +318,7 @@ export default function App() {
           ocrStatus={ocrStatus}
           onOcrPage={handleOcrPage}
           onOcrAll={handleOcrAll}
+          onCancelOcr={handleCancelOcr}
           onDownloadAll={handleDownloadAll}
           isOcrAllRunning={isOcrAllRunning}
           models={models}
@@ -303,6 +332,7 @@ export default function App() {
         <DirectView directResult={directResult} onDownload={handleDirectDownload} />
       )}
     </div>
+    </ImageContext.Provider>
   )
 }
 

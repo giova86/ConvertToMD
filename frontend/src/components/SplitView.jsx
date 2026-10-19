@@ -7,6 +7,7 @@ import {
   Eye,
   Scan,
   ScanLine,
+  XCircle,
 } from 'lucide-react'
 import MarkdownPanel from './MarkdownPanel'
 import PageViewer from './PageViewer'
@@ -20,6 +21,7 @@ export default function SplitView({
   ocrStatus,
   onOcrPage,
   onOcrAll,
+  onCancelOcr,
   onDownloadAll,
   isOcrAllRunning,
   models,
@@ -124,6 +126,17 @@ export default function SplitView({
             )}
             OCR all
           </button>
+
+          {(isOcrAllRunning || currentStatus === 'loading') && (
+            <button
+              onClick={onCancelOcr}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+              title="Annulla la conversione in corso"
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              Annulla
+            </button>
+          )}
 
           {doneCount > 0 && (
             <button

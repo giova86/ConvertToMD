@@ -7,7 +7,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from converters import docx_to_markdown, xlsx_to_markdown, convert_to_pdf_bytes
+from converters import docx_to_markdown, xlsx_to_markdown, convert_to_pdf_bytes, extract_pdf_page_images
 import settings_store
 from llm_backends import get_backend, BackendConnectionError, BackendResponseError
 
@@ -21,6 +21,36 @@ app.add_middleware(
 )
 
 RENDER_DPI = 200
+
+
+def _render_pages(doc) -> list[dict]:
+    """Render every page to JPEG and extract its embedded figures as PNG crops."""
+    pages = []
+    mat = fitz.Matrix(RENDER_DPI / 72, RENDER_DPI / 72)
+    seen_xrefs: set = set()
+    counter = 0
+    for page_num in range(len(doc)):
+        page = doc[page_num]
+        pix = page.get_pixmap(matrix=mat)
+        img_bytes = pix.tobytes("jpeg", jpg_quality=90)
+        figures = []
+        for fig in extract_pdf_page_images(page, seen_xrefs, RENDER_DPI):
+            counter += 1
+            figures.append({
+                "name": f"page{page_num + 1}_image{counter}.png",
+                "image_base64": base64.b64encode(fig["png"]).decode("utf-8"),
+                "before_text": fig["before"],
+                "after_text": fig["after"],
+                "at_start": fig["at_start"],
+            })
+        pages.append({
+            "page_number": page_num + 1,
+            "image_base64": base64.b64encode(img_bytes).decode("utf-8"),
+            "width": pix.width,
+            "height": pix.height,
+            "figures": figures,
+        })
+    return pages
 
 
 class OcrPageRequest(BaseModel):
@@ -57,21 +87,8 @@ async def upload_pdf(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to open PDF: {e}")
 
-    pages = []
-    mat = fitz.Matrix(RENDER_DPI / 72, RENDER_DPI / 72)
-
     try:
-        for page_num in range(len(doc)):
-            page = doc[page_num]
-            pix = page.get_pixmap(matrix=mat)
-            img_bytes = pix.tobytes("jpeg", jpg_quality=90)
-            img_b64 = base64.b64encode(img_bytes).decode("utf-8")
-            pages.append({
-                "page_number": page_num + 1,
-                "image_base64": img_b64,
-                "width": pix.width,
-                "height": pix.height,
-            })
+        pages = _render_pages(doc)
     finally:
         doc.close()
 
@@ -95,9 +112,10 @@ async def convert_direct(file: UploadFile = File(...)):
 
     content = await file.read()
 
+    images: dict[str, bytes] = {}
     try:
         if ext == ".docx":
-            markdown, info = docx_to_markdown(content)
+            markdown, info = docx_to_markdown(content, images)
         else:
             markdown, info = xlsx_to_markdown(content)
     except NotImplementedError as e:
@@ -105,7 +123,15 @@ async def convert_direct(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Conversion failed: {e}")
 
-    return {"filename": file.filename, "markdown": markdown, "info": info}
+    return {
+        "filename": file.filename,
+        "markdown": markdown,
+        "info": info,
+        "images": [
+            {"name": n, "image_base64": base64.b64encode(b).decode("utf-8")}
+            for n, b in images.items()
+        ],
+    }
 
 
 @app.post("/api/convert-to-pdf")
@@ -137,21 +163,8 @@ async def convert_to_pdf(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Failed to open converted PDF: {e}")
 
-    pages = []
-    mat = fitz.Matrix(RENDER_DPI / 72, RENDER_DPI / 72)
-
     try:
-        for page_num in range(len(doc)):
-            page = doc[page_num]
-            pix = page.get_pixmap(matrix=mat)
-            img_bytes = pix.tobytes("jpeg", jpg_quality=90)
-            img_b64 = base64.b64encode(img_bytes).decode("utf-8")
-            pages.append({
-                "page_number": page_num + 1,
-                "image_base64": img_b64,
-                "width": pix.width,
-                "height": pix.height,
-            })
+        pages = _render_pages(doc)
     finally:
         doc.close()
 

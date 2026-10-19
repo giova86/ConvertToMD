@@ -290,3 +290,75 @@ def test_ocr_page_returns_503_when_backend_unreachable(tmp_path, monkeypatch):
     r = client.post("/api/ocr-page", json={"image_base64": "abc", "page_number": 1})
 
     assert r.status_code == 503
+
+
+def _png_bytes(size=120, color=(200, 30, 30)) -> bytes:
+    import fitz
+    pix = fitz.Pixmap(fitz.csRGB, fitz.IRect(0, 0, size, size), False)
+    pix.set_rect(pix.irect, color)
+    return pix.tobytes("png")
+
+
+def test_docx_images_extracted_and_referenced(tmp_path):
+    from docx.shared import Inches
+    png = tmp_path / "pic.png"
+    png.write_bytes(_png_bytes())
+    doc = Document()
+    doc.add_paragraph("Before")
+    doc.add_picture(str(png), width=Inches(2))
+    doc.add_picture(str(png), width=Inches(2))  # duplicate -> same file
+    doc.add_paragraph("After")
+    buf = io.BytesIO()
+    doc.save(buf)
+
+    from converters import docx_to_markdown
+    images = {}
+    md, info = docx_to_markdown(buf.getvalue(), images)
+    assert list(images) == ["image_1.png"]
+    assert md.index("Before") < md.index("![](images/image_1.png)") < md.index("After")
+    assert info["images"] == 2
+
+
+def test_convert_direct_docx_returns_images(tmp_path):
+    from docx.shared import Inches
+    png = tmp_path / "pic.png"
+    png.write_bytes(_png_bytes())
+    doc = Document()
+    doc.add_picture(str(png), width=Inches(2))
+    buf = io.BytesIO()
+    doc.save(buf)
+    resp = client.post("/api/convert-direct", files={"file": ("d.docx", buf.getvalue(), "application/octet-stream")})
+    assert resp.status_code == 200
+    assert resp.json()["images"][0]["name"] == "image_1.png"
+
+
+def test_upload_pdf_extracts_figures_and_skips_page_sized_images():
+    import fitz
+    pdf = fitz.open()
+    page = pdf.new_page()
+    page.insert_text((72, 60), "hello")
+    page.insert_image(fitz.Rect(72, 100, 272, 300), stream=_png_bytes(200))
+    page.insert_image(fitz.Rect(300, 100, 310, 110), stream=_png_bytes(20))  # tiny
+    p2 = pdf.new_page()
+    p2.insert_image(p2.rect, stream=_png_bytes(200))  # page-sized scan
+    resp = client.post("/api/upload", files={"file": ("a.pdf", pdf.tobytes(), "application/pdf")})
+    assert resp.status_code == 200
+    pages = resp.json()["pages"]
+    assert [f["name"] for f in pages[0]["figures"]] == ["page1_image1.png"]
+    assert pages[1]["figures"] == []
+
+
+def test_upload_pdf_extracts_vector_figures_but_not_tables():
+    import fitz
+    pdf = fitz.open()
+    page = pdf.new_page()
+    page.insert_text((72, 60), "Intro text")
+    for i in range(12):  # vector "plot": a cluster of circles
+        page.draw_circle((120 + 12 * i, 200 + 15 * (i % 4)), 8, color=(0, 0, 1), fill=(0.7, 0.8, 1))
+    page.insert_text((72, 330), "Figure 1. caption")
+    for i in range(6):  # table-like: only straight rules
+        page.draw_line((72, 400 + 20 * i), (400, 400 + 20 * i))
+    resp = client.post("/api/upload", files={"file": ("v.pdf", pdf.tobytes(), "application/pdf")})
+    assert resp.status_code == 200
+    figures = resp.json()["pages"][0]["figures"]
+    assert len(figures) == 1

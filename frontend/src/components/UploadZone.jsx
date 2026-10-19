@@ -13,7 +13,7 @@ function isAccepted(file) {
   return ACCEPTED_EXTS.some((ext) => name.endsWith(ext))
 }
 
-export default function UploadZone({ onFileSelect, isLoading, error }) {
+export default function UploadZone({ onFileSelect, isLoading, onCancel, error }) {
   const [isDragging, setIsDragging] = useState(false)
   const { isDark } = useTheme()
 
@@ -61,7 +61,7 @@ export default function UploadZone({ onFileSelect, isLoading, error }) {
           isDragging
             ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 scale-[1.015]'
             : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-blue-300 hover:bg-slate-50 dark:hover:bg-slate-700',
-          isLoading ? 'pointer-events-none opacity-60' : '',
+          isLoading ? 'pointer-events-none' : '',
         ].join(' ')}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -80,6 +80,18 @@ export default function UploadZone({ onFileSelect, isLoading, error }) {
             <div className="w-14 h-14 border-4 border-blue-100 border-t-blue-500 rounded-full animate-spin mb-5" />
             <p className="text-slate-600 dark:text-slate-300 font-semibold text-lg">Processing…</p>
             <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">Converting document</p>
+            {onCancel && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  onCancel()
+                }}
+                className="mt-5 pointer-events-auto px-4 py-1.5 rounded-lg text-sm font-medium border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              >
+                Annulla
+              </button>
+            )}
           </>
         ) : (
           <>

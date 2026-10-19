@@ -1,9 +1,9 @@
 const BASE = '/api'
 
-export async function uploadPDF(file) {
+export async function uploadPDF(file, signal) {
   const form = new FormData()
   form.append('file', file)
-  const res = await fetch(`${BASE}/upload`, { method: 'POST', body: form })
+  const res = await fetch(`${BASE}/upload`, { method: 'POST', body: form, signal })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Upload failed' }))
     throw new Error(err.detail || 'Upload failed')
@@ -48,11 +48,12 @@ export async function getModels({ backendType, baseUrl, apiKey } = {}) {
   return data.models
 }
 
-export async function ocrPage(imageBase64, pageNumber, model) {
+export async function ocrPage(imageBase64, pageNumber, model, signal) {
   const res = await fetch(`${BASE}/ocr-page`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ image_base64: imageBase64, page_number: pageNumber, model }),
+    signal,
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'OCR failed' }))
@@ -61,10 +62,10 @@ export async function ocrPage(imageBase64, pageNumber, model) {
   return res.json()
 }
 
-export async function convertDirect(file) {
+export async function convertDirect(file, signal) {
   const form = new FormData()
   form.append('file', file)
-  const res = await fetch(`${BASE}/convert-direct`, { method: 'POST', body: form })
+  const res = await fetch(`${BASE}/convert-direct`, { method: 'POST', body: form, signal })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Conversion failed' }))
     throw new Error(err.detail || 'Conversion failed')
@@ -72,10 +73,10 @@ export async function convertDirect(file) {
   return res.json()
 }
 
-export async function convertToPdf(file) {
+export async function convertToPdf(file, signal) {
   const form = new FormData()
   form.append('file', file)
-  const res = await fetch(`${BASE}/convert-to-pdf`, { method: 'POST', body: form })
+  const res = await fetch(`${BASE}/convert-to-pdf`, { method: 'POST', body: form, signal })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Conversion failed' }))
     throw new Error(err.detail || 'Conversion failed')

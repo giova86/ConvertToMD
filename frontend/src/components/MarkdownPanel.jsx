@@ -1,10 +1,21 @@
-import { useState } from 'react'
+import { useContext, useState } from 'react'
+import { ImageContext } from '../imageStore'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
 import { Check, Copy, Download, Scan } from 'lucide-react'
+
+// OCR models often emit \( ... \) and \[ ... \]; remark-math wants $ delimiters.
+const normalizeMath = (md) =>
+  md
+    .replace(/\\\[([\s\S]+?)\\\]/g, (_, m) => `\n$$\n${m}\n$$\n`)
+    .replace(/\\\(([\s\S]+?)\\\)/g, (_, m) => `$${m}$`)
 
 export default function MarkdownPanel({ markdown, view, status, onOcr, backendLabel, model }) {
   const [copied, setCopied] = useState(false)
+  const images = useContext(ImageContext)
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(markdown)
@@ -116,7 +127,17 @@ export default function MarkdownPanel({ markdown, view, status, onOcr, backendLa
         ) : (
           <div className="p-8">
             <div className="prose prose-slate dark:prose-invert prose-sm max-w-none prose-headings:font-semibold prose-table:text-sm">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex]}
+                components={{
+                  img: ({ src, alt }) => {
+                    const name = src?.startsWith('images/') ? src.slice(7) : null
+                    const resolved = name && images[name] ? `data:image/${name.split('.').pop()};base64,${images[name]}` : src
+                    return <img src={resolved} alt={alt} className="max-w-full h-auto rounded" />
+                  },
+                }}
+              >{normalizeMath(markdown)}</ReactMarkdown>
             </div>
           </div>
         )}

@@ -22,10 +22,13 @@ A standalone **CLI batch converter** (`scripts/convert.py`) is also included for
 - Upload and convert PDF, DOCX, DOC, XLSX, XLS files
 - Split-view interface: original document page rendered alongside the extracted Markdown
 - Per-page OCR with progress tracking, or one-click "OCR All"
-- Download the complete Markdown output as a `.md` file
+- Figures are preserved: embedded images (DOCX, PDF) and vector charts (PDF) are extracted as PNG files and referenced in the Markdown as `![](images/…)`, placed near their original position
+- Download the complete Markdown output as a `.md` file, or as a `.zip` (`.md` + `images/` folder) when the document contains figures
 - Dark mode support
 - 100% offline — Ollama runs locally, no API keys required
 - CLI tool for batch processing with configurable DPI, model, and timeout
+
+**Figure extraction limits:** figures in PDFs are placed using the document's native text as anchors, so scanned PDFs (no text layer) get them at the end of the page; images inside DOCX tables and XLSX images are not extracted yet.
 
 ---
 
@@ -213,9 +216,9 @@ The backend exposes the following REST endpoints on `http://localhost:8000`:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/upload` | Upload a PDF; returns page images as base64 |
-| `POST` | `/api/convert-direct` | Direct DOCX/XLSX → Markdown extraction |
-| `POST` | `/api/convert-to-pdf` | Convert DOCX/DOC/XLSX/XLS to PDF via LibreOffice, then render pages |
+| `POST` | `/api/upload` | Upload a PDF; returns page images as base64 plus the figures extracted from each page |
+| `POST` | `/api/convert-direct` | Direct DOCX/XLSX → Markdown extraction (DOCX images returned in `images`) |
+| `POST` | `/api/convert-to-pdf` | Convert DOCX/DOC/XLSX/XLS to PDF via LibreOffice, then render pages and extract figures |
 | `POST` | `/api/ocr-page` | Run OCR on a single base64-encoded page image |
 | `GET`  | `/api/health` | Health check |
 
